@@ -14,98 +14,49 @@ class Visualization():
         self.fragmentCode = fragmentCode
         self.resolution = [1280.0, 720.0]
         
-        self.jointCount = skeleton.getJointCount()
-        self.edgeCount = skeleton.getEdgeCount()
-        self.objectCount = 10;
-        
-        self.shader_jointCount = 28;
-        self.shader_edgeCount = 27;
-        self.shader_objectCount = 10;
+        jointCount = skeleton.getJointCount()
+        edgeCount = skeleton.getEdgeCount()
+        groundCount = 1
         
         self.skelPosition = np.array([0.0, 0.0, 0.0])
         
-        # camera settings
         self.camPosition = np.array([1.0, 0.0, 0.0])
         self.camAngle = 45.0
         
-        # light settings
-        self.lightPosition = np.array([1.0, 0.0, 0.0])
-        self.shadowSmooth = 16.0;
-        self.shadowStrength = 0.0;
-        
-        # background settings
         self.bgColor = np.array([0.0, 0.0, 0.0])
-        self.bgOcclusionColor = np.array([0.0, 0.0, 0.0])
+        self.objectColor = np.array([1.0, 0.0, 0.0])
         
-        # fog settings
-        self.fogMinDist = 99.0
-        self.fogMaxDist = 100
+        self.lightPosition = np.array([1.0, 0.0, 0.0])
+        self.lightAmbientScale = 0.5
+        self.lightDiffuseScale = 0.5
+        self.lightSpecularScale = 0.5
+        self.lightSpecularPow = 10.0
         
-        # skeleton joint settings
-        self.jointColor = np.array([1.0, 1.0, 1.0])
-        self.jointAmbientScale = 1.0
-        self.jointDiffuseScale = 1.0
-        self.jointSpecularScale = 1.0
-        self.jointSpecularPow = 20.0
-        self.jointOcclusionScale = 1.0
-        self.jointOcclusionRange = 1.0
-        self.jointOcclusionResolution = 1.0
-        self.jointOcclusionColor = np.array([0.0, 0.0, 0.0])
+        self.lightOcclusionScale = 1.0
+        self.lightOcclusionRange = 3.0
+        self.lightOcclusinResolution = 1.0
         
-        self.jointPrimitives = np.zeros((self.jointCount), dtype=np.int32) - 1
-        self.jointSizes = np.ones((self.jointCount, 3)) * 0.1
-        self.jointRoundings = np.ones((self.jointCount)) * 0.01
-        self.jointSmoothings = np.ones((self.jointCount)) * 0.01
-        
-        # skeleton edge settings
-        self.edgeColor = np.array([1.0, 1.0, 1.0])
-        self.edgeAmbientScale = 1.0
-        self.edgeDiffuseScale = 1.0
-        self.edgeSpecularScale = 1.0
-        self.edgeSpecularPow = 20.0
-        self.edgeOcclusionScale = 1.0
-        self.edgeOcclusionRange = 1.0
-        self.edgeOcclusionResolution = 1.0
-        self.edgeOcclusionColor = np.array([0.0, 0.0, 0.0])
-        
-        self.edgePrimitives = np.zeros((self.edgeCount), dtype=np.int32) - 1
-        self.edgeSizes = np.ones((self.edgeCount, 3))
+        self.jointPrimitives = np.zeros((jointCount), dtype=np.int32)
+        self.jointSizes = np.ones((jointCount, 3)) * 0.1
+        self.jointRoundings = np.ones((jointCount)) * 0.01
+        self.jointSmoothings = np.ones((jointCount)) * 0.01
+
+        self.edgePrimitives = np.zeros((edgeCount), dtype=np.int32)
+        self.edgeSizes = np.ones((edgeCount, 3))
         self.edgeSizes[:, 0] *= 0.01
         self.edgeSizes[:, 1] *= 0.01
         self.edgeSizes[:, 2] *= 1.0
-        self.edgeRoundings = np.ones((self.jointCount)) * 0.01
-        self.edgeSmoothings = np.ones((self.edgeCount)) * 0.01
-
-        # object settings
-        self.objectColors = np.ones((self.objectCount, 3))
-        self.objectAmbientScales = np.ones((self.objectCount))
-        self.objectDiffuseScales = np.ones((self.objectCount))
-        self.objectSpecularScales = np.ones((self.objectCount))
-        self.objectSpecularPows = np.ones((self.objectCount)) * 20.0
-        self.objectOcclusionScales = np.ones((self.objectCount))
-        self.objectOcclusionRanges = np.ones((self.objectCount))
-        self.objectOcclusionResolutions = np.ones((self.objectCount))
-        self.objectOcclusionColors = np.zeros((self.objectCount, 3))
+        self.edgeRoundings = np.ones((jointCount)) * 0.1
+        self.edgeSmoothings = np.ones((edgeCount)) * 0.01
+        self.jointEdgeSmoothing = 0.0
         
-        self.objectFrequencies = np.zeros((self.objectCount, 3))
-        self.objectAmplitudes = np.zeros((self.objectCount, 3))
-        self.objectPhases = np.zeros((self.objectCount, 3))
-
-        self.objectPrimitives = np.zeros((self.objectCount), dtype=np.int32) - 1
-        self.objectSizes = np.ones((self.objectCount, 3)) * 0.01
-        self.objectRoundings = np.ones((self.objectCount)) * 0.01
-        self.objectSmoothings = np.ones((self.objectCount)) * 0.01
-        self.objectPositions  = np.zeros((self.objectCount, 3))
-        self.objectRotations  = np.zeros((self.objectCount, 4))
-        self.objectRotations[:, 1] = 1.0
-        self.objectTransforms = np.zeros((self.objectCount, 4, 4))
-        
-        for oI in range(self.objectCount):
-            self.updateObjectTransform(oI)
-
-        # combined smoothing factors
-        self.jointEdgeSmoothing = 0.01
-        self.skelObjectSmoothing = 0.01
+        self.groundPrimitive = 0
+        self.groundPosition = np.array([0.0, 0.0, 0.0])
+        self.groundRotation = np.array([1.0, 0.0, 0.0, 0.0])
+        self.groundTransform = np.eye(4)
+        self.groundSize = np.ones((3)) * 0.1
+        self.groundRounding = 0.01
+        self.groundSmoothing = 0.01
         
     def setupShader(self, gl):
         
@@ -142,49 +93,24 @@ class Visualization():
             
         self.shader_iGlobalTime = gl.glGetUniformLocation(self.program, "iGlobalTime")
         self.shader_iResolution = gl.glGetUniformLocation(self.program, "iResolution")
-        
-        # camera settings
         self.shader_camPosition = gl.glGetUniformLocation(self.program, "camPosition")
         self.shader_camAngle = gl.glGetUniformLocation(self.program, "camAngle")
         
-        # light settings
-        self.shader_lightPosition = gl.glGetUniformLocation(self.program, "lightPosition")
-        self.shader_shadowSmooth = gl.glGetUniformLocation(self.program, "shadowSmooth")
-        self.shader_shadowStrength = gl.glGetUniformLocation(self.program, "shadowStrength")
-        
-        # background settings
         self.shader_bgColor = gl.glGetUniformLocation(self.program, "bgColor")
-        self.shader_bgOcclusionColor = gl.glGetUniformLocation(self.program, "bgOcclusionColor")
+        self.shader_objectColor = gl.glGetUniformLocation(self.program, "objectColor")
         
-        # fog settings
-        self.shader_fogMinDist = gl.glGetUniformLocation(self.program, "fog_min_dist")
-        self.shader_fogMaxDist = gl.glGetUniformLocation(self.program, "fog_max_dist")
+        self.shader_lightPosition = gl.glGetUniformLocation(self.program, "lightPosition")
+        self.shader_lightAmbientScale = gl.glGetUniformLocation(self.program, "lightAmbientScale")
+        self.shader_lightDiffuseScale = gl.glGetUniformLocation(self.program, "lightDiffuseScale")
+        self.shader_lightSpecularScale = gl.glGetUniformLocation(self.program, "lightSpecularScale")
+        self.shader_llightSpecularPow = gl.glGetUniformLocation(self.program, "lightSpecularPow")
+
+        self.shader_lightOcclusionScale = gl.glGetUniformLocation(self.program, "lightOcclusionScale")
+        self.shader_lightOcclusionRange = gl.glGetUniformLocation(self.program, "lightOcclusionRange")
+        self.shader_lightOcclusionResolution = gl.glGetUniformLocation(self.program, "lightOcclusionResolution")
         
-        # skeleton joint settings
-        self.shader_jointColor = gl.glGetUniformLocation(self.program, "jointColor")
-        self.shader_jointAmbientScale = gl.glGetUniformLocation(self.program, "jointAmbientScale")
-        self.shader_jointDiffuseScale = gl.glGetUniformLocation(self.program, "jointDiffuseScale")
-        self.shader_jointSpecularScale = gl.glGetUniformLocation(self.program, "jointSpecularScale")
-        self.shader_jointSpecularPow = gl.glGetUniformLocation(self.program, "jointSpecularPow")
-        self.shader_jointOcclusionScale = gl.glGetUniformLocation(self.program, "jointOcclusionScale")
-        self.shader_jointOcclusionRange = gl.glGetUniformLocation(self.program, "jointOcclusionRange")
-        self.shader_jointOcclusionResolution = gl.glGetUniformLocation(self.program, "jointOcclusionResolution")
-        self.shader_jointOcclusionColor = gl.glGetUniformLocation(self.program, "jointOcclusionColor")
-        
-        # skeleton edge settings
-        self.shader_edgeColor = gl.glGetUniformLocation(self.program, "edgeColor")
-        self.shader_edgeAmbientScale = gl.glGetUniformLocation(self.program, "edgeAmbientScale")
-        self.shader_edgeDiffuseScale = gl.glGetUniformLocation(self.program, "edgeDiffuseScale")
-        self.shader_edgeSpecularScale = gl.glGetUniformLocation(self.program, "edgeSpecularScale")
-        self.shader_edgeSpecularPow = gl.glGetUniformLocation(self.program, "edgeSpecularPow")
-        self.shader_edgeOcclusionScale = gl.glGetUniformLocation(self.program, "edgeOcclusionScale")
-        self.shader_edgeOcclusionRange = gl.glGetUniformLocation(self.program, "edgeOcclusionRange")
-        self.shader_edgeOcclusionResolution = gl.glGetUniformLocation(self.program, "edgeOcclusionResolution")
-        self.shader_edgeOcclusionColor = gl.glGetUniformLocation(self.program, "edgeOcclusionColor")
-        
-        # combined smoothing factors
         self.shader_jointEdgeSmoothing = gl.glGetUniformLocation(self.program, "jointEdgeSmoothing")
-        self.shader_skelObjectSmoothing = gl.glGetUniformLocation(self.program, "skelObjectSmoothing")
+        
 
         gl.glDetachShader(self.program, self.vertex)
         gl.glDetachShader(self.program, self.fragment)
@@ -228,38 +154,32 @@ class Visualization():
         gl.glUniform1f(self.shader_iGlobalTime, elapsed_time)
         gl.glUniform2f(self.shader_iResolution, *self.resolution)
         
-        # camera settings
         gl.glUniform3f(self.shader_camPosition, *self.camPosition.tolist())
         gl.glUniform1f(self.shader_camAngle, self.camAngle);
-        
-        # light settings
-        gl.glUniform3f(self.shader_lightPosition, *self.lightPosition.tolist())
-        gl.glUniform1f(self.shader_shadowSmooth, self.shadowSmooth);
-        gl.glUniform1f(self.shader_shadowStrength, self.shadowStrength);
 
-        # background settings
         gl.glUniform3f(self.shader_bgColor, *self.bgColor.tolist())
-        gl.glUniform3f(self.shader_bgOcclusionColor, *self.bgOcclusionColor.tolist())
+        gl.glUniform3f(self.shader_objectColor, *self.objectColor.tolist())
+        gl.glUniform3f(self.shader_lightPosition, *self.lightPosition.tolist())
         
-        # fog settings
-        gl.glUniform1f(self.shader_fogMinDist, self.fogMinDist);
-        gl.glUniform1f(self.shader_fogMaxDist, self.fogMaxDist);
+        gl.glUniform1f(self.shader_lightAmbientScale, self.lightAmbientScale)
+        gl.glUniform1f(self.shader_lightDiffuseScale, self.lightDiffuseScale)
+        gl.glUniform1f(self.shader_lightSpecularScale, self.lightSpecularScale)
+        gl.glUniform1f(self.shader_llightSpecularPow, self.lightSpecularPow)
+
+        gl.glUniform1f(self.shader_lightOcclusionScale, self.lightOcclusionScale)
+        gl.glUniform1f(self.shader_lightOcclusionRange, self.lightOcclusionRange)
+        gl.glUniform1f(self.shader_lightOcclusionResolution, self.lightOcclusinResolution)
         
-        # skeleton joint settings
-        gl.glUniform3f(self.shader_jointColor, *self.jointColor.tolist())
-        gl.glUniform1f(self.shader_jointAmbientScale, self.jointAmbientScale)
-        gl.glUniform1f(self.shader_jointDiffuseScale, self.jointDiffuseScale)
-        gl.glUniform1f(self.shader_jointSpecularScale, self.jointSpecularScale)
-        gl.glUniform1f(self.shader_jointSpecularPow, self.jointSpecularPow)
-        gl.glUniform1f(self.shader_jointOcclusionScale, self.jointOcclusionScale)
-        gl.glUniform1f(self.shader_jointOcclusionRange, self.jointOcclusionRange)
-        gl.glUniform1f(self.shader_jointOcclusionResolution, self.jointOcclusionResolution)
-        gl.glUniform3f(self.shader_jointOcclusionColor, *self.jointOcclusionColor.tolist())
-        
+        gl.glUniform1f(self.shader_jointEdgeSmoothing, self.jointEdgeSmoothing)
+
         jointCount = self.skeleton.getJointCount()
+        edgeCount = self.skeleton.getEdgeCount()
+        
+        jointTransforms = np.copy(self.skeleton.getJointTransforms())
+        edgeTransforms = np.copy(self.skeleton.getEdgeTransforms())
+        edgeLengths = np.copy(self.skeleton.getEdgeLengths())
 
         # joint transforms
-        jointTransforms = np.copy(self.skeleton.getJointTransforms())
         for jI in range(jointCount):
             
             jointTransform = jointTransforms[jI]
@@ -267,7 +187,7 @@ class Visualization():
             uniformName = "jointTransforms[" + str(jI) + "]";
             uniformLoc = gl.glGetUniformLocation(self.program, uniformName)
             gl.glUniformMatrix4fv(uniformLoc, 1, gl.GL_FALSE, jointTransform.tolist ())
-        
+            
         # joint primitives
         for jI in range(jointCount):
             
@@ -275,7 +195,7 @@ class Visualization():
             uniformName = "jointPrimitives[" + str(jI) + "]";
             uniformLoc = gl.glGetUniformLocation(self.program, uniformName)
             gl.glUniform1i(uniformLoc, jointPrimitive)
-
+        
         # joint sizes
         for jI in range(jointCount):
             
@@ -283,7 +203,7 @@ class Visualization():
             uniformName = "jointSizes[" + str(jI) + "]";
             uniformLoc = gl.glGetUniformLocation(self.program, uniformName)
             gl.glUniform3fv(uniformLoc, 1, jointSize.tolist())
-
+            
         # joint rounding
         for jI in range(jointCount):
             
@@ -300,21 +220,7 @@ class Visualization():
             uniformLoc = gl.glGetUniformLocation(self.program, uniformName)
             gl.glUniform1f(uniformLoc, jointSmooth)
             
-        # skeleton edge settings
-        gl.glUniform3f(self.shader_edgeColor, *self.edgeColor.tolist())
-        gl.glUniform1f(self.shader_edgeAmbientScale, self.edgeAmbientScale)
-        gl.glUniform1f(self.shader_edgeDiffuseScale, self.edgeDiffuseScale)
-        gl.glUniform1f(self.shader_edgeSpecularScale, self.edgeSpecularScale)
-        gl.glUniform1f(self.shader_edgeSpecularPow, self.edgeSpecularPow)
-        gl.glUniform1f(self.shader_edgeOcclusionScale, self.edgeOcclusionScale)
-        gl.glUniform1f(self.shader_edgeOcclusionRange, self.edgeOcclusionRange)
-        gl.glUniform1f(self.shader_edgeOcclusionResolution, self.edgeOcclusionResolution)
-        gl.glUniform3f(self.shader_edgeOcclusionColor, *self.edgeOcclusionColor.tolist())     
-        
-        edgeCount = self.skeleton.getEdgeCount()
-        
         # edge transforms
-        edgeTransforms = np.copy(self.skeleton.getEdgeTransforms())
         for eI in range(edgeCount):
             
             edgeTransform = edgeTransforms[eI]
@@ -331,7 +237,6 @@ class Visualization():
             gl.glUniform1i(uniformLoc, edgePrimitive)
             
         # edge lengths
-        edgeLengths = np.copy(self.skeleton.getEdgeLengths())
         for eI in range(edgeCount):
 
             edgeLength = edgeLengths[eI]
@@ -361,224 +266,71 @@ class Visualization():
             edgeSmooth = self.edgeSmoothings[eI]
             uniformName = "edgeSmoothings[" + str(eI) + "]";
             uniformLoc = gl.glGetUniformLocation(self.program, uniformName)
-            gl.glUniform1f(uniformLoc, edgeSmooth)        
+            gl.glUniform1f(uniformLoc, edgeSmooth)
+
+
+        # ground settings
         
-        # object colors
-        for oI in range(self.objectCount):
-            
-            objectColor = self.objectColors[oI]
-            
-            uniformName = "objectColors[" + str(oI) + "]";
-            uniformLoc = gl.glGetUniformLocation(self.program, uniformName)
-            gl.glUniform3f(uniformLoc, *objectColor.tolist())
-
-        # object ambient scales
-        for oI in range(self.objectCount):
-            
-            objectAmbientScale = self.objectAmbientScales[oI]
-            
-            uniformName = "objectAmbientScales[" + str(oI) + "]";
-            uniformLoc = gl.glGetUniformLocation(self.program, uniformName)
-            gl.glUniform1f(uniformLoc, objectAmbientScale)   
-
-        # object diffuse scales
-        for oI in range(self.objectCount):
-            
-            objectDiffuseScale = self.objectDiffuseScales[oI]
-            uniformName = "objectDiffuseScales[" + str(oI) + "]";
-            uniformLoc = gl.glGetUniformLocation(self.program, uniformName)
-            gl.glUniform1f(uniformLoc, objectDiffuseScale)    
-            
-        # object specular scales
-        for oI in range(self.objectCount):
-            
-            objectSpecularScale = self.objectSpecularScales[oI]
-            uniformName = "objectSpecularScales[" + str(oI) + "]";
-            uniformLoc = gl.glGetUniformLocation(self.program, uniformName)
-            gl.glUniform1f(uniformLoc, objectSpecularScale)
-            
-        # object specular pow
-        for oI in range(self.objectCount):
-            
-            objectSpecularPow = self.objectSpecularPows[oI]
-            uniformName = "objectSpecularPows[" + str(oI) + "]";
-            uniformLoc = gl.glGetUniformLocation(self.program, uniformName)
-            gl.glUniform1f(uniformLoc, objectSpecularPow)    
-
-        # object occlusion scale
-        for oI in range(self.objectCount):
-            
-            objectOcclusionScale = self.objectOcclusionScales[oI]
-            uniformName = "objectOcclusionScales[" + str(oI) + "]";
-            uniformLoc = gl.glGetUniformLocation(self.program, uniformName)
-            gl.glUniform1f(uniformLoc, objectOcclusionScale)    
-
-        # object occlusion range
-        for oI in range(self.objectCount):
-            
-            objectOcclusionRange = self.objectOcclusionRanges[oI]
-            uniformName = "objectOcclusionRanges[" + str(oI) + "]";
-            uniformLoc = gl.glGetUniformLocation(self.program, uniformName)
-            gl.glUniform1f(uniformLoc, objectOcclusionRange)  
-
-        # object occlusion resolution
-        for oI in range(self.objectCount):
-            
-            objectOcclusionResolution = self.objectOcclusionResolutions[oI]
-            uniformName = "objectOcclusionResolutions[" + str(oI) + "]";
-            uniformLoc = gl.glGetUniformLocation(self.program, uniformName)
-            gl.glUniform1f(uniformLoc, objectOcclusionResolution)  
-
-        # object occlusion colors
-        for oI in range(self.objectCount):
-            
-            objectOcclusionColor = self.objectOcclusionColors[oI]
-            uniformName = "objectOcclusionColors[" + str(oI) + "]";
-            uniformLoc = gl.glGetUniformLocation(self.program, uniformName)
-            gl.glUniform3f(uniformLoc, *objectOcclusionColor.tolist())
-            
-        # object frequencies
-        for oI in range(self.objectCount):
-            
-            objectFrequency = self.objectFrequencies[oI]
-            uniformName = "objectFrequencies[" + str(oI) + "]";
-            uniformLoc = gl.glGetUniformLocation(self.program, uniformName)
-            gl.glUniform3fv(uniformLoc, 1, objectFrequency.tolist())
-    
-        # object amplitudes
-        for oI in range(self.objectCount):
-            
-            objectAmplitude = self.objectAmplitudes[oI]
-            uniformName = "objectAmplitudes[" + str(oI) + "]";
-            uniformLoc = gl.glGetUniformLocation(self.program, uniformName)
-            gl.glUniform3fv(uniformLoc, 1, objectAmplitude.tolist())   
-            
-        # object phases
-        for oI in range(self.objectCount):
-            
-            objectPhase = self.objectPhases[oI]
-            uniformName = "objectPhases[" + str(oI) + "]";
-            uniformLoc = gl.glGetUniformLocation(self.program, uniformName)
-            gl.glUniform3fv(uniformLoc, 1, objectPhase.tolist())
-
-        # object transforms
-        for oI in range(self.objectCount):
-            
-            objectTransform = self.objectTransforms[oI]
-            uniformName = "objectTransforms[" + str(oI) + "]";
-            uniformLoc = gl.glGetUniformLocation(self.program, uniformName)
-            gl.glUniformMatrix4fv(uniformLoc, 1, gl.GL_FALSE, objectTransform.tolist ())
-            
-        # object primitives
-        for oI in range(self.objectCount):
-            
-            objectPrimitive = self.objectPrimitives[oI]
-            uniformName = "objectPrimitives[" + str(oI) + "]";
-            uniformLoc = gl.glGetUniformLocation(self.program, uniformName)
-            gl.glUniform1i(uniformLoc, objectPrimitive)
-        
-        # object sizes
-        for oI in range(self.objectCount):
-            
-            objectSize = self.objectSizes[oI]
-            uniformName = "objectSizes[" + str(oI) + "]";
-            uniformLoc = gl.glGetUniformLocation(self.program, uniformName)
-            gl.glUniform3fv(uniformLoc, 1, objectSize.tolist())
-
-        # object rounding
-        for oI in range(self.objectCount):
-            
-            objectRounding = self.objectRoundings[oI]
-            uniformName = "objectRoundings[" + str(oI) + "]";
-            uniformLoc = gl.glGetUniformLocation(self.program, uniformName)
-            gl.glUniform1f(uniformLoc, objectRounding)
-                
-        # object smooths
-        for oI in range(self.objectCount):
-            
-            objectSmooth = self.objectSmoothings[oI]
-            uniformName = "objectSmoothings[" + str(oI) + "]";
-            uniformLoc = gl.glGetUniformLocation(self.program, uniformName)
-            gl.glUniform1f(uniformLoc, objectSmooth)
-        
-        # combined smoothing factors
-        gl.glUniform1f(self.shader_jointEdgeSmoothing, self.jointEdgeSmoothing)
-        gl.glUniform1f(self.shader_skelObjectSmoothing, self.skelObjectSmoothing)
+        gl.glUniform1i(gl.glGetUniformLocation(self.program, "groundPrimitive"), self.groundPrimitive)
+        gl.glUniformMatrix4fv(gl.glGetUniformLocation(self.program, "groundTransform"), 1, gl.GL_FALSE, self.groundTransform.tolist())
+        gl.glUniform3fv(gl.glGetUniformLocation(self.program, "groundSize"), 1, self.groundSize.tolist())
+        gl.glUniform1f(gl.glGetUniformLocation(self.program, "groundRounding"), self.groundRounding)     
+        gl.glUniform1f(gl.glGetUniformLocation(self.program, "groundSmoothing"), self.groundSmoothing)     
 
 
         gl.glDrawArrays(gl.GL_TRIANGLE_STRIP, 0, 4)        
         
-    def setCamPosition(self, position):
-        self.camPosition = position
         
-    def setCamAngle(self, angle):
-        self.camAngle = angle   
+    def setBGColor(self, bgColor):
+        self.bgColor = bgColor
+        
+    def setObjectColor(self, objectColor):
+        self.objectColor = objectColor
+        
+    def setCamPosition(self, camPosition):
+        self.camPosition = camPosition
+        
+    def setCamAngle(self, camAngle):
+        self.camAngle = camAngle
         
     def setLightPosition(self, position):
         self.lightPosition = position
         
-    def setShadowStrength(self, strength):
-        self.shadowStrength = strength;
+    def setLightAmbientScale(self, scale):
+        self.lightAmbientScale = scale
         
-    def setShadowSmooth(self, smooth):
-        self.shadowSmooth = smooth;
+    def setLightDiffuseScale(self, scale):
+        self.lightDiffuseScale = scale
         
-    def setShadowSoftHardMixFactor(self, factor):
-        self.shadowSoftHardMixFactor = factor;
+    def setLightSpecularScale(self, scale):
+        self.lightSpecularScale = scale
         
-    def setBGColor(self, color):
-        self.bgColor = color
+    def setLightSpecularPow(self, pow):
+        self.lightSpecularPow = pow
+        
+    def setLightOcclusionScale(self, scale):
+        self.lightOcclusionScale = scale   
 
-    def setBGOcclusionColor(self, color):
-        self.bgOcclusionColor = color
+    def setLightOcclusionRange(self, range):
+        self.lightOcclusionRange = range   
         
-    def setFogMinDist(self, dist):
-        self.fogMinDist = dist
+    def setLightOcclusinResolution(self, resolution):
+        self.lightOcclusinResolution = resolution   
         
-    def setFogMaxDist(self, dist):
-        self.fogMaxDist = dist
-        
-    def setJointColor(self, color):
-        self.jointColor = color       
-        
-    def setJointAmbientScale(self, scale):
-        self.jointAmbientScale = scale       
-
-    def setJointDiffuseScale(self, scale):
-        self.jointDiffuseScale = scale      
-
-    def setJointSpecularScale(self, scale):
-        self.jointSpecularScale = scale     
-        
-    def setJointSpecularPow(self, pow_):
-        self.jointSpecularPow = pow_    
-    
-    def setJointOcclusionScale(self, scale):
-        self.jointOcclusionScale = scale            
-    
-    def setJointOcclusionRange(self, range_):
-        self.jointOcclusionRange = range_           
-    
-    def setJointOcclusionResolution(self, resolution):
-        self.jointOcclusionResolution = resolution           
-
-    def setJointOcclusionColor(self, color):
-        self.jointOcclusionColor = color     
-    
     def setJointPrimitive(self, index, primitive):
         
-        if index >= self.shader_jointCount:
+        if index >=  self.jointPrimitives.shape[0]:
             return
         
-        self.jointPrimitives[index] = primitive    
-
+        self.jointPrimitives[index] = primitive
+        
     def setJointPrimitives(self, primitive):
         
         self.jointPrimitives[:] = primitive
 
     def setJointSize(self, index, size):
         
-        if index >= self.shader_jointCount:
+        if index >= self.jointPrimitives.shape[0]:
             return
         
         self.jointSizes[index] = size
@@ -589,7 +341,7 @@ class Visualization():
         
     def setJointRounding(self, index, round):
         
-        if index >= self.shader_jointCount:
+        if index >= self.jointRoundings.shape[0]:
             return
         
         self.jointRoundings[index] = round
@@ -600,7 +352,7 @@ class Visualization():
         
     def setJointSmoothing(self, index, smooth):
         
-        if index >= self.shader_jointCount:
+        if index >= self.jointRoundings.shape[0]:
             return
         
         self.jointSmoothings[index] = smooth
@@ -608,48 +360,22 @@ class Visualization():
     def setJointSmoothings(self, smooth):
         
         self.jointSmoothings[:] = smooth   
-
-    def setEdgeColor(self, color):
-        self.edgeColor = color       
         
-    def setEdgeAmbientScale(self, scale):
-        self.edgeAmbientScale = scale       
 
-    def setEdgeDiffuseScale(self, scale):
-        self.edgeDiffuseScale = scale      
-
-    def setEdgeSpecularScale(self, scale):
-        self.edgeSpecularScale = scale     
-        
-    def setEdgeSpecularPow(self, pow_):
-        self.edgeSpecularPow = pow_    
-    
-    def setEdgeOcclusionScale(self, scale):
-        self.edgeOcclusionScale = scale            
-    
-    def setEdgeOcclusionRange(self, range_):
-        self.edgeOcclusionRange = range_           
-    
-    def setEdgeOcclusionResolution(self, resolution):
-        self.edgeOcclusionResolution = resolution         
-        
-    def setEdgeOcclusionColor(self, color):
-        self.edgeOcclusionColor = color     
-    
     def setEdgePrimitive(self, index, primitive):
         
-        if index >= self.shader_edgeCount:
+        if index >=  self.edgePrimitives.shape[0]:
             return
         
-        self.edgePrimitives[index] = primitive    
-
+        self.edgePrimitives[index] = primitive
+        
     def setEdgePrimitives(self, primitive):
         
         self.edgePrimitives[:] = primitive
 
     def setEdgeSize(self, index, size):
         
-        if index >= self.shader_edgeCount:
+        if index >= self.edgeSizes.shape[0]:
             return
         
         self.edgeSizes[index] = size
@@ -660,7 +386,7 @@ class Visualization():
         
     def setEdgeRounding(self, index, round):
         
-        if index >= self.shader_edgeCount:
+        if index >= self.edgeRoundings.shape[0]:
             return
         
         self.edgeRoundings[index] = round
@@ -671,7 +397,7 @@ class Visualization():
         
     def setEdgeSmoothing(self, index, smooth):
         
-        if index >= self.shader_edgeCount:
+        if index >= self.edgeSmoothings.shape[0]:
             return
         
         self.edgeSmoothings[index] = smooth
@@ -679,218 +405,45 @@ class Visualization():
     def setEdgeSmoothings(self, smooth):
         
         self.edgeSmoothings[:] = smooth   
+        
+    def setJointEdgeSmoothing(self, smooth):
+        self.jointEdgeSmoothing = smooth
+        
+    def setGroundPrimitive(self, primitive):
+        self.groundPrimitive = primitive    
 
-    def setObjectColor(self, index, color):
+    def setGroundPosition(self, position):
+        self.groundPosition = position    
         
-        if index >= self.shader_edgeCount:
-            return
-        
-        self.objectColors[index] = color     
-        
-    def setObjectColors(self, color):
-        
-        self.objectColors[:] = color
-
-    def setObjectAmbientScale(self, index, scale):
-        
-        if index >= self.shader_objectCount:
-            return
-        
-        self.objectAmbientScales[index] = scale   
-
-    def setObjectAmbientScales(self, scale):
-        
-        self.objectAmbientScales[:] = scale        
-
-    def setObjectDiffuseScale(self, index, scale):
-        
-        if index >= self.shader_objectCount:
-            return
-        
-        self.objectDiffuseScales[index] = scale       
-        
-    def setObjectDiffuseScales(self, scale):
-        
-        self.objectDiffuseScales[:] = scale 
-
-    def setObjectSpecularScale(self, index, scale):
-        
-        if index >= self.shader_objectCount:
-            return
-        
-        self.objectSpecularScales[index] = scale       
-        
-    def setObjectSpecularScales(self, scale):
-        
-        self.objectSpecularScales[:] = scale 
-
-    def setObjectSpecularPow(self, index, pow_):
-        
-        if index >= self.shader_objectCount:
-            return
-        
-        self.objectSpecularPows[index] = pow_       
-        
-    def setObjectSpecularPows(self, pow_):
-        
-        self.objectSpecularPows[:] = pow_ 
-        
-    def setObjectOcclusionScale(self, index, scale):
-        
-        if index >= self.shader_objectCount:
-            return
-        
-        self.objectOcclusionScales[index] = scale       
-        
-    def setObjectOcclusionScales(self, scale):
-        
-        self.objectOcclusionScales[:] = scale 
-
-    def setObjectOcclusionRange(self, index, range_):
-        
-        if index >= self.shader_objectCount:
-            return
-        
-        self.objectOcclusionRanges[index] = range_       
-        
-    def setObjectOcclusionRanges(self, range_):
-        
-        self.objectOcclusionRanges[:] = range_         
-          
-    def setObjectOcclusionResolution(self, index, resolution):
-         
-        if index >= self.shader_objectCount:
-            return
-         
-        self.objectOcclusionResolutions[index] = resolution       
-         
-    def setObjectOcclusionResolutions(self, resolution):
-         
-         self.objectOcclusionResolutions[:] = resolution      
-
-    def setObjectOcclusionColor(self, index, color):
-         
-        if index >= self.shader_objectCount:
-            return
-         
-        self.objectOcclusionColors[index] = color       
-         
-    def setObjectOcclusionColors(self, color):
-         
-         self.objectOcclusionColors[:] = color  
-         
-    def setObjectFrequency(self, index, frequency):
-        
-        if index >= self.shader_objectCount:
-            return
-        
-        self.objectFrequencies[index] = frequency
-        
-    def setObjectFrequencies(self, frequency):
-        
-        self.objectFrequencies[:] = frequency        
-
-    def setObjectAmplitude(self, index, amplitude):
-        
-        if index >= self.shader_objectCount:
-            return
-        
-        self.objectAmplitudes[index] = amplitude
-        
-    def setObjectAmplitudes(self, amplitude):
-        
-        self.objectAmplitudes[:] = amplitude    
-
-    def setObjectPhase(self, index, phase):
-        
-        if index >= self.shader_objectCount:
-            return
-        
-        self.objectPhases[index] = phase
-        
-    def setObjectPhases(self, phase):
-        
-        self.objectPhases[:] = phase 
-
-    def setObjectPrimitive(self, index, primitive):
-        
-        if index >= self.shader_objectCount:
-            return
-        
-        self.objectPrimitives[index] = primitive    
-
-    def setObjectPrimitives(self, primitive):
-        
-        self.objectPrimitives[:] = primitive
-
-    def setObjectSize(self, index, size):
-        
-        if index >= self.shader_objectCount:
-            return
-        
-        self.objectSizes[index] = size
-        
-    def setObjectSizes(self, size):
-        
-        self.objectSizes[:] = size
-        
-    def setObjectRounding(self, index, round):
-        
-        if index >= self.shader_objectCount:
-            return
-        
-        self.objectRoundings[index] = round
-        
-    def settObjectRoundings(self, round):
-        
-        self.objectRoundings[:] = round
-        
-    def setObjectSmoothing(self, index, smooth):
-        
-        if index >= self.shader_objectCount:
-            return
-        
-        self.objectSmoothings[index] = smooth
-        
-    def setObjectSmoothings(self, smooth):
-        
-        self.objectSmoothings[:] = smooth   
-
-    def setObjectPosition(self, index, position):
-        
-        if index >= self.shader_objectCount:
-            return
-        
-        self.objectPositions[index] = position    
-        
-        self.updateObjectTransform(index)
+        self.updateGroundTransform()
  
-    def setObjectRotation(self, index, rotation):
+    def setGroundRotation(self, rotation):
+        self.groundRotation = rotation    
         
-        if index >= self.shader_objectCount:
-            return
-        
-        self.objectRotations[index] = rotation    
-        
-        self.updateObjectTransform(index)       
+        self.updateGroundTransform()       
  
-    def updateObjectTransform(self, index):
+    def updateGroundTransform(self):
         
         defaultScale = np.ones((3))
         defaultRot = np.array([1.0, 0.0, 0.0, 0.0])
         defaultPos = np.array([0.0, 0.0, 0.0])
         defaultRotMat = (t3d.quaternions.quat2mat(defaultRot))
         
-        objectRotMat = t3d.quaternions.quat2mat(self.objectRotations[index])
-        objectTransMat = t3d.affines.compose(self.objectPositions[index], defaultRotMat, defaultScale)
-        objectRotMat = t3d.affines.compose(defaultPos, objectRotMat, defaultScale)
+        groundRotMat = t3d.quaternions.quat2mat(self.groundRotation)
+        groundTransMat = t3d.affines.compose(self.groundPosition, defaultRotMat, defaultScale)
+        groundRotMat = t3d.affines.compose(defaultPos, groundRotMat, defaultScale)
 
-        self.objectTransforms[index] = np.transpose(np.matmul(objectRotMat, objectTransMat))
+        self.groundTransform = np.transpose(np.matmul(groundRotMat, groundTransMat))
+
+    def setGroundSize(self, size):
         
-    def setJointEdgeSmoothing(self, smoothing):
+        self.groundSize = size
         
-        self.jointEdgeSmoothing = smoothing
+    def setGroundRounding(self, round):
         
-    def setSkelObjectSmoothing(self, smoothing):
+        self.groundRounding = round
         
-        self.skelObjectSmoothing = smoothing
+    def setGroundSmoothing(self, smooth):
+        
+        self.groundSmoothing = smooth
+

@@ -1,57 +1,39 @@
 import numpy as np
 import transforms3d as t3d
-from common.quaternion import slerp
 
-def slerp_pose(q0, q1, t=0.5):
-    
-    joint_count = q0.shape[0]
-    
-    qm = np.zeros_like(q0)
-    
-    for ji in range(joint_count): 
-    
-        current_quat = q0[ji, :]
-        target_quat = q1[ji, :]
-        
-        quat_mix = t[ji]
-        mix_quat = slerp(current_quat, target_quat, quat_mix )
-        qm[ji, :] = mix_quat
-        
-    return qm
+def slerp(q0, q1, t=0.5, unit=True):
+    """
+    tested
+    :param q0: shape = (*, n)
+    :param q1: shape = (*, n)
+    :param t: shape = (*)
+    :param unit: If q0 and q1 are unit vectors
+    :return: res: shape = (*, n)
+    """
+    eps = 1e-8
+    if not unit:
+        q0_n = q0 / np.linalg.norm(q0, axis=-1, keepdims=True)
+        q1_n = q1 / np.linalg.norm(q1, axis=-1, keepdims=True)
+    else:
+        q0_n = q0
+        q1_n = q1
+    omega = np.arccos((q0_n * q1_n).sum(axis=-1).clip(-1, 1))
+    dom = np.sin(omega)
 
-# def slerp(q0, q1, t=0.5, unit=True):
-#     """
-#     tested
-#     :param q0: shape = (*, n)
-#     :param q1: shape = (*, n)
-#     :param t: shape = (*)
-#     :param unit: If q0 and q1 are unit vectors
-#     :return: res: shape = (*, n)
-#     """
-#     eps = 1e-8
-#     if not unit:
-#         q0_n = q0 / np.linalg.norm(q0, axis=-1, keepdims=True)
-#         q1_n = q1 / np.linalg.norm(q1, axis=-1, keepdims=True)
-#     else:
-#         q0_n = q0
-#         q1_n = q1
-#     omega = np.arccos((q0_n * q1_n).sum(axis=-1).clip(-1, 1))
-#     dom = np.sin(omega)
+    flag = dom < eps
 
-#     flag = dom < eps
+    res = np.empty_like(q0_n)
+    t_t = np.expand_dims(t[flag], axis=-1)
+    res[flag] = (1 - t_t) * q0_n[flag] + t_t * q1_n[flag]
 
-#     res = np.empty_like(q0_n)
-#     t_t = np.expand_dims(t[flag], axis=-1)
-#     res[flag] = (1 - t_t) * q0_n[flag] + t_t * q1_n[flag]
+    flag = ~ flag
 
-#     flag = ~ flag
-
-#     t_t = t[flag]
-#     d_t = dom[flag]
-#     va = np.sin((1 - t_t) * omega[flag]) / d_t
-#     vb = np.sin(t_t * omega[flag]) / d_t
-#     res[flag] = (np.expand_dims(va, axis=-1) * q0_n[flag] + np.expand_dims(vb, axis=-1) * q1_n[flag])
-#     return res
+    t_t = t[flag]
+    d_t = dom[flag]
+    va = np.sin((1 - t_t) * omega[flag]) / d_t
+    vb = np.sin(t_t * omega[flag]) / d_t
+    res[flag] = (np.expand_dims(va, axis=-1) * q0_n[flag] + np.expand_dims(vb, axis=-1) * q1_n[flag])
+    return res
 
 class Skeleton():
     
@@ -105,74 +87,54 @@ class Skeleton():
         
         # prerotations of joints to align joint shapes
         
-
         # 0  : Hips
-        rotations[0,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, np.pi / 2.0, 0.0, axes='sxyz'), rotations[0,:])
-        # 11 : Spine
-        rotations[11,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, np.pi / 2.0, 0.0, axes='sxyz'), rotations[11,:])
-        # 12 : Spine1
-        rotations[12,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, np.pi / 2.0, 0.0, axes='sxyz'), rotations[12,:])
-        # 13 : Spine2
-        rotations[13,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, np.pi / 2.0, 0.0, axes='sxyz'), rotations[13,:])
-        # 14 : Spine3
-        rotations[14,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, np.pi / 2.0, 0.0, axes='sxyz'), rotations[14,:])
-        # 25 : Neck
-        rotations[25,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, np.pi / 2.0, 0.0, axes='sxyz'), rotations[25,:])
-        # 26 : Head
-        rotations[26,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, np.pi / 2.0, 0.0, axes='sxyz'), rotations[26,:])
-        # 27 : Head_Nub
-        rotations[27,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, np.pi / 2.0, 0.0, axes='sxyz'), rotations[27,:])
-                                         
-        # 1  : RightUpLeg
-        rotations[1,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, np.pi / 2.0, 0.0, axes='sxyz'), rotations[1,:])
-        # 2  : RightLeg
-        rotations[2,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, np.pi / 2.0, 0.0, axes='sxyz'), rotations[2,:])
-        # 3  : RightFoot
-        #rotations[3,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, 0.0, np.pi / 2.0, axes='sxyz'), rotations[3,:])
-        # 4  : RightToeBase
-        rotations[4,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, np.pi / 2.0, 0.0, axes='sxyz'), rotations[4,:])
-        # 5  : RightToeBase_Nub
-        rotations[5,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, np.pi / 2.0, 0.0, axes='sxyz'), rotations[5,:])
+        rotations[0,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, 0.0, np.pi / 2.0, axes='sxyz'), rotations[0,:])
         
-        # 6  : LeftUpLeg
-        rotations[6,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, np.pi / 2.0, 0.0, axes='sxyz'), rotations[6,:])
-        # 7  : LeftLeg
-        rotations[7,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, np.pi / 2.0, 0.0, axes='sxyz'), rotations[7,:])
-        # 8  : LeftFoot
-        #rotations[8,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, np.pi / 2.0, 0.0, axes='sxyz'), rotations[8,:])
-        # 9  : LeftToeBase
-        rotations[9,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, np.pi / 2.0, 0.0, axes='sxyz'), rotations[9,:])
-        # 10 : LeftToeBase_Nub
-        rotations[10,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, np.pi / 2.0, 0.0, axes='sxyz'), rotations[10,:])
+        # 6  : LeftShoulder
+        rotations[6,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, 0.0, np.pi / 2.0, axes='sxyz'), rotations[6,:])
+        # 7  : LeftArm
+        rotations[7,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, 0.0, np.pi / 2.0, axes='sxyz'), rotations[7,:])
+        # 8  : LeftForeArm
+        rotations[8,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, 0.0, np.pi / 2.0, axes='sxyz'), rotations[8,:])
+        # 9  : LeftForeArmRoll
+        rotations[9,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, 0.0, np.pi / 2.0, axes='sxyz'), rotations[9,:])
+        # 10  : LeftHand
+        rotations[10,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, 0.0, np.pi / 2.0, axes='sxyz'), rotations[10,:])
+        # 11  : LeftInHandMiddle
+        rotations[11,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, 0.0, np.pi / 2.0, axes='sxyz'), rotations[11,:])
+        # 12  : LeftHandMiddle2
+        rotations[12,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, 0.0, np.pi / 2.0, axes='sxyz'), rotations[12,:])
         
-        # 15 : LeftShoulder
+        # 13  : RightShoulder
+        rotations[13,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, 0.0, np.pi / 2.0, axes='sxyz'), rotations[13,:])
+        # 14  : RightArm
+        rotations[14,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, 0.0, np.pi / 2.0, axes='sxyz'), rotations[14,:])
+        # 15  : RightForeArm
         rotations[15,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, 0.0, np.pi / 2.0, axes='sxyz'), rotations[15,:])
-        # 16 : LeftArm
+        # 16  : RightForeArmRoll
         rotations[16,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, 0.0, np.pi / 2.0, axes='sxyz'), rotations[16,:])
-        # 17 : LeftForeArm
+        # 17  : RightHand
         rotations[17,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, 0.0, np.pi / 2.0, axes='sxyz'), rotations[17,:])
-        # 18 : LeftHand
+        # 18  : RightInHandMiddle
         rotations[18,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, 0.0, np.pi / 2.0, axes='sxyz'), rotations[18,:])
-        # 19 : LeftHand_Nub
+        # 19  : RightHandMiddle2
         rotations[19,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, 0.0, np.pi / 2.0, axes='sxyz'), rotations[19,:])
         
-    
-        # 20 : RightShoulder
-        rotations[20,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, 0.0, np.pi / 2.0, axes='sxyz'), rotations[20,:])
-        # 21 : RightArm
-        rotations[21,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, 0.0, np.pi / 2.0, axes='sxyz'), rotations[21,:])
-        # 22 : RightForeArm
-        rotations[22,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, 0.0, np.pi / 2.0, axes='sxyz'), rotations[22,:])
-        # 23 : RightHand
-        rotations[23,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, 0.0, np.pi / 2.0, axes='sxyz'), rotations[23,:])
-        # 24 : RightHand_Nub
-        rotations[24,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, 0.0, np.pi / 2.0, axes='sxyz'), rotations[24,:])       
- 
+        # 22 : LeftFoot
+        rotations[22,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, np.pi / 2.0, 0.0, axes='sxyz'), rotations[22,:])
+        # 23 : LeftToeBase
+        rotations[23,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, np.pi / 2.0, 0.0, axes='sxyz'), rotations[23,:])
+        
+        # 26 : RightFoot
+        rotations[26,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, np.pi / 2.0, 0.0, axes='sxyz'), rotations[26,:])
+        # 27 : RightToeBase
+        rotations[27,:] = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, np.pi / 2.0, 0.0, axes='sxyz'), rotations[27,:])
+
         if rotations.shape != self.jointRotations.shape:
             return
 
-        # TODO: address problem where rotation and position interpolation doesn't match
-        self.jointRotations = slerp_pose(self.jointRotations, rotations, np.ones(self.jointCount) * (1.0 - self.udateSmoothing))
+        # TODO: address problem with rotation smoothing causes quick oscillations of some joints
+        self.jointRotations = slerp(self.jointRotations, rotations, np.ones(self.jointCount) * (1.0 - self.udateSmoothing))
         self.jointRotations = self.jointRotations / np.linalg.norm(self.jointRotations)
 
         #self.jointRotations = rotations
@@ -231,10 +193,8 @@ class Skeleton():
                 
                 edgeRotation = self.jointRotations[pjI] # / np.linalg.norm(self.jointRotations[pjI])
                 
-                if pjI == 0 and cjI == 1: # hip to RightUpLeg
+                if pjI == 0 and cjI == 1: # hip to spine edge
                     edgeRotation = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, 0.0, -np.pi / 2.0, axes='sxyz'), edgeRotation)
-                if pjI == 0 and cjI == 6: # hip to LeftUpLeg
-                    edgeRotation = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, 0.0, -np.pi / 2.0, axes='sxyz'), edgeRotation)   
                     
                 edgeRotation = t3d.quaternions.qmult(t3d.euler.euler2quat(0.0, np.pi / 2.0, 0.0, axes='sxyz'), edgeRotation)
                 
