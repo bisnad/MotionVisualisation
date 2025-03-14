@@ -10,9 +10,9 @@
 		}
 ,
 		"classnamespace" : "box",
-		"rect" : [ -1822.0, 571.0, 683.0, 306.0 ],
+		"rect" : [ 42.0, 571.0, 683.0, 306.0 ],
 		"bglocked" : 0,
-		"openinpresentation" : 0,
+		"openinpresentation" : 1,
 		"default_fontsize" : 12.0,
 		"default_fontface" : 0,
 		"default_fontname" : "Arial",
@@ -560,7 +560,6 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 1054.5, 516.193359375, 165.0, 22.0 ],
-					"presentation_linecount" : 2,
 					"text" : "/deepdream/pyramid_ratio $1"
 				}
 
@@ -646,7 +645,6 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 1049.25, 470.0, 163.0, 22.0 ],
-					"presentation_linecount" : 2,
 					"text" : "/deepdream/pyramid_size $1"
 				}
 
@@ -695,7 +693,6 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 1093.5, 428.0, 130.0, 22.0 ],
-					"presentation_linecount" : 2,
 					"text" : "/deepdream/feature $1"
 				}
 
@@ -1959,8 +1956,8 @@
  ],
 		"dependency_cache" : [ 			{
 				"name" : "controls.json",
-				"bootpath" : "~/Projects/Premiere/Software/ML/dance/aae-rnn_interactive/controls",
-				"patcherrelativepath" : "../../../../../../Projects/Premiere/Software/ML/dance/aae-rnn_interactive/controls",
+				"bootpath" : "~/Projects/Premiere/Software_Git2/MotionVisualisation/ImageDeepdream/controls",
+				"patcherrelativepath" : ".",
 				"type" : "JSON",
 				"implicit" : 1
 			}

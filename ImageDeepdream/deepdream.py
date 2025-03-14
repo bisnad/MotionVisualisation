@@ -1,6 +1,25 @@
 """
-The Annotated DeepDream
+Video DeepDream
+
+This tool is heavily based on "The Annotated Deep Dream" project which has been slightly adapted for real-time use. 
+Credits for most of the code go to Gordic Aleksa
 """
+
+"""
+Video Settings
+"""
+
+image_resolution = (1280, 720)
+use_live_camera_input = True
+movie_file_path = "../../../Data/Video/Stocos/Solos/Take4_Blumen_Baile.mp4"
+
+
+"""
+OSC Settings
+"""
+
+osc_receive_ip = "0.0.0.0"
+osc_receive_port = 9004
 
 """
 first define some imports that we'll need:
@@ -29,6 +48,13 @@ import torch.nn.functional as F
 import cv2 as cv
 import numpy as np
 import matplotlib.pyplot as plt  # visualizations
+
+"""
+compute device
+"""
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+print('Using {} device'.format(device))
 
 """
 Now define some enums and constants that will come in handy:
@@ -123,72 +149,105 @@ class Vgg16Experimental(torch.nn.Module):
         if not requires_grad:
             for param in self.parameters():
                 param.requires_grad = False
+                
+        # prepare layer names and layer outputs
+        self.layer_names = ["conv1_1", 
+                            "conv1_2", 
+                            "conv2_1", 
+                            "conv2_2",
+                            "conv3_1", 
+                            "conv3_2", 
+                            "conv3_3", 
+                            "conv4_1",
+                            "conv4_2",
+                            "conv4_3",
+                            "conv5_1",
+                            "conv5_2",
+                            "conv5_3"]
+        
+        self.layer_outputs  = {}
+        for layer_name in self.layer_names:
+            self.layer_outputs[layer_name] = None
+        
 
     # Just expose every single layer during the forward pass
     def forward(self, x):
         x = self.conv1_1(x)
         conv1_1 = x
+        self.layer_outputs["conv1_1"] = x
         x = self.relu1_1(x)
         relu1_1 = x
         x = self.conv1_2(x)
         conv1_2 = x
+        self.layer_outputs["conv1_2"] = x
         x = self.relu1_2(x)
         relu1_2 = x
         x = self.max_pooling1(x)
         x = self.conv2_1(x)
         conv2_1 = x
+        self.layer_outputs["conv2_1"] = x
         x = self.relu2_1(x)
         relu2_1 = x
         x = self.conv2_2(x)
         conv2_2 = x
+        self.layer_outputs["conv2_2"] = x
         x = self.relu2_2(x)
         relu2_2 = x
         x = self.max_pooling2(x)
         x = self.conv3_1(x)
         conv3_1 = x
+        self.layer_outputs["conv3_1"] = x
         x = self.relu3_1(x)
         relu3_1 = x
         x = self.conv3_2(x)
         conv3_2 = x
+        self.layer_outputs["conv3_2"] = x
         x = self.relu3_2(x)
         relu3_2 = x
         x = self.conv3_3(x)
         conv3_3 = x
+        self.layer_outputs["conv3_3"] = x
         x = self.relu3_3(x)
         relu3_3 = x
         x = self.max_pooling3(x)
         x = self.conv4_1(x)
         conv4_1 = x
+        self.layer_outputs["conv4_1"] = x
         x = self.relu4_1(x)
         relu4_1 = x
         x = self.conv4_2(x)
         conv4_2 = x
+        self.layer_outputs["conv4_2"] = x
         x = self.relu4_2(x)
         relu4_2 = x
         x = self.conv4_3(x)
         conv4_3 = x
+        self.layer_outputs["conv4_3"] = x
         x = self.relu4_3(x)
         relu4_3 = x
         x = self.max_pooling4(x)
         x = self.conv5_1(x)
         conv5_1 = x
+        self.layer_outputs["conv5_1"] = x
         x = self.relu5_1(x)
         relu5_1 = x
         x = self.conv5_2(x)
         conv5_2 = x
+        self.layer_outputs["conv5_2"] = x
         x = self.relu5_2(x)
         relu5_2 = x
         x = self.conv5_3(x)
         conv5_3 = x
+        self.layer_outputs["conv5_3"] = x
         x = self.relu5_3(x)
         relu5_3 = x
         mp5 = self.max_pooling5(x)
 
         # Finally, expose only the layers that you want to experiment with here
-        vgg_outputs = namedtuple("VggOutputs", self.layer_names)
-        out = vgg_outputs(relu3_3, relu4_1, relu4_2, relu4_3, relu5_1, relu5_2, relu5_3, mp5)
+        #vgg_outputs = namedtuple("VggOutputs", self.layer_names)
+        #out = vgg_outputs(relu3_3, relu4_1, relu4_2, relu4_3, relu5_1, relu5_2, relu5_3, mp5)
 
-        return out
+        return x, self.layer_outputs
     
     
 def fetch_and_prepare_model(model_type, pretrained_weights):
@@ -201,6 +260,10 @@ def fetch_and_prepare_model(model_type, pretrained_weights):
     else:
         raise Exception('Model not yet supported.')
     return model
+
+
+
+
 
 """
 Image loading, saving and displaying 🖼️
@@ -262,16 +325,28 @@ def save_and_maybe_display_image(config, dump_img, name_modifier=None):
 # This function makes sure we can later reconstruct the image using the information encoded into the filename!
 # Again don't worry about all the arguments we'll define them later
 def build_image_name(config):
-    input_name = 'rand_noise' if config['use_noise'] else config['input'].split('.')[0]
+    #input_name = 'rand_noise' if config['use_noise'] else config['input'].split('.')[0]
+    input_name = 'rand_noise' if config['use_noise'] else os.path.basename(config['input'])
+    
     layers = '_'.join(config['layers_to_use'])
+    features = '_'.join(str(config['features_to_use']))
+    
+    #print("config['features_to_use'] ", config['features_to_use'])
+    #print("str(config['features_to_use']) ", str(config['features_to_use']))
+    #print("features ", features)
+    
     # Looks awful but makes the creation process transparent for other creators
-    img_name = f'{input_name}_width_{config["img_width"]}_model_{config["model_name"]}_{config["pretrained_weights"]}_{layers}_pyrsize_{config["pyramid_size"]}_pyrratio_{config["pyramid_ratio"]}_iter_{config["num_gradient_ascent_iterations"]}_lr_{config["lr"]}_shift_{config["spatial_shift_size"]}_smooth_{config["smoothing_coefficient"]}.jpg'
+    img_name = f'{input_name}_width_{config["img_width"]}_{layers}_{features}_pyrsize_{config["pyramid_size"]}_pyrratio_{config["pyramid_ratio"]}_iter_{config["num_gradient_ascent_iterations"]}_lr_{config["lr"]}_shift_{config["spatial_shift_size"]}_smooth_{config["smoothing_coefficient"]}.jpg'
+    
+    #print("img_name ", img_name)
+    
     return img_name
 
 """
 Awesome! Let's test the code as we progress, to make sure it works the way we expect it to (without any 🐛🐛🐛):
 """
 
+"""
 input_img_name = 'figures.jpg'  # checked in, I'll be using it as the running example
 img_width = 500  # arbitrary
 img_path = os.path.join(INPUT_DATA_PATH, input_img_name)
@@ -280,6 +355,7 @@ img = load_image(img_path, target_shape=img_width)
 fig = plt.figure(figsize=(7.5,5), dpi=100)  # otherwise plots are really small in Jupyter Notebook
 plt.imshow(img)
 plt.show()
+"""
 
 """
 DeepDream image/tensor utilities
@@ -317,6 +393,9 @@ def pytorch_input_adapter(img):
 
 
 def pytorch_output_adapter(tensor):
+    
+    #print("pytorch_output_adapter min ", torch.min(tensor), " max ", torch.max(tensor))
+    
     # Push to CPU, detach from the computational graph, convert from (1, 3, H, W) tensor into (H, W, 3) numpy image
     return np.moveaxis(tensor.to('cpu').detach().numpy()[0], 0, 2)
 
@@ -332,7 +411,7 @@ def random_circular_spatial_shift(tensor, h_shift, w_shift, should_undo=False):
         return rolled
 
 """
-mage pyramid
+Image pyramid
 I mentioned in my initial explanation of DeepDream that the image will be fed through the CNN and that it will amplify certain features.
 
 There is one important, practical detail that I've omitted and that's that we'll be feeding the image in various resolutions into the CNN. By doing that the network will see different things each time and that will in return give us a richer output.
@@ -350,12 +429,29 @@ pyramid_ratio - ratio of the resolutions in the pyramid. 2x means 400x400 image 
 """
     
 # again treat config as an oracle
+"""
 def get_new_shape(config, original_shape, current_pyramid_level):
     SHAPE_MARGIN = 10
     pyramid_ratio = config['pyramid_ratio']
     pyramid_size = config['pyramid_size']
     exponent = current_pyramid_level - pyramid_size + 1  # this one will be negative so we're dividing the original img shape
     new_shape = np.round(np.float32(original_shape) * (pyramid_ratio**exponent)).astype(np.int32)
+
+    if new_shape[0] < SHAPE_MARGIN or new_shape[1] < SHAPE_MARGIN:
+        print(f'Pyramid size {config["pyramid_size"]} with pyramid ratio {config["pyramid_ratio"]} gives too small pyramid levels with size={new_shape}')
+        print(f'Please change the parameters.')
+        exit(0)
+
+    return new_shape
+"""
+
+def get_new_shape(pyramid_ratio, pyramid_size, original_shape, current_pyramid_level):
+    
+    SHAPE_MARGIN = 10
+    exponent = current_pyramid_level - pyramid_size + 1  # this one will be negative so we're dividing the original img shape
+    new_shape = np.round(np.float32(original_shape) * (pyramid_ratio**exponent)).astype(np.int32)
+    
+    #print("original_shape ", original_shape , " new_shape ", new_shape)
 
     if new_shape[0] < SHAPE_MARGIN or new_shape[1] < SHAPE_MARGIN:
         print(f'Pyramid size {config["pyramid_size"]} with pyramid ratio {config["pyramid_ratio"]} gives too small pyramid levels with size={new_shape}')
@@ -370,10 +466,10 @@ So this is the core part. Take some time to understand what is happening. We'll 
 """
 
 def deep_dream_static_image(config, img=None):
-    model = fetch_and_prepare_model(config['model_name'], config['pretrained_weights'])
 
     try:
-        layer_ids_to_use = [model.layer_names.index(layer_name) for layer_name in config['layers_to_use']]
+        layers_to_use = [layer_name for layer_name in config['layers_to_use']]
+        features_to_use = [feature_index for feature_index in config['features_to_use']]
     except Exception as e:  # making sure you set the correct layer name for this specific model
         print(f'Invalid layer names {[layer_name for layer_name in config["layers_to_use"]]}.')
         print(f'Available layers for model {config["model_name"]} are {model.layer_names}.')
@@ -383,6 +479,7 @@ def deep_dream_static_image(config, img=None):
         img_path = os.path.join(INPUT_DATA_PATH, config['input'])
         # load a numpy, [0, 1] range, channel-last, RGB image
         img = load_image(img_path, target_shape=config['img_width'])
+        
         if config['use_noise']:
             shape = img.shape
             img = np.random.uniform(low=0.0, high=1.0, size=shape).astype(np.float32)
@@ -392,22 +489,35 @@ def deep_dream_static_image(config, img=None):
 
     # Note: simply rescaling the whole result (and not only details, see original implementation) gave me better results
     # Going from smaller to bigger resolution (from pyramid top to bottom)
-    for pyramid_level in range(config['pyramid_size']):
-        new_shape = get_new_shape(config, original_shape, pyramid_level)
+    
+    pyramid_ratio = config['pyramid_ratio']
+    pyramid_size = config['pyramid_size']
+
+    for pyramid_level in range(pyramid_size):
+        new_shape = get_new_shape(pyramid_ratio, pyramid_size, original_shape, pyramid_level)
         img = cv.resize(img, (new_shape[1], new_shape[0]))  # resize depending on the current pyramid level
         input_tensor = pytorch_input_adapter(img)  # convert to trainable tensor
 
         for iteration in range(config['num_gradient_ascent_iterations']):
             
+            #print("iter ", iter)
+            #print("input_tensor 0 min ", torch.min(input_tensor), " max ", torch.max(input_tensor))
+            
             # Introduce some randomness, it will give us more diverse results especially when you're making videos
             h_shift, w_shift = np.random.randint(-config['spatial_shift_size'], config['spatial_shift_size'] + 1, 2)
             input_tensor = random_circular_spatial_shift(input_tensor, h_shift, w_shift)
+            
+            #print("input_tensor 1 min ", torch.min(input_tensor), " max ", torch.max(input_tensor))
 
             # This is where the magic happens, treat it as a black box until the next cell
-            gradient_ascent(config, model, input_tensor, layer_ids_to_use, iteration)
+            gradient_ascent(config, model, input_tensor, layers_to_use, features_to_use, iteration)
+            
+            #print("input_tensor 2 min ", torch.min(input_tensor), " max ", torch.max(input_tensor))
 
             # Roll back by the same amount as above (hence should_undo=True)
             input_tensor = random_circular_spatial_shift(input_tensor, h_shift, w_shift, should_undo=True)
+            
+            #print("input_tensor 3 min ", torch.min(input_tensor), " max ", torch.max(input_tensor))
 
         img = pytorch_output_adapter(input_tensor)
 
@@ -421,16 +531,26 @@ LOWER_IMAGE_BOUND = torch.tensor((-IMAGENET_MEAN_1 / IMAGENET_STD_1).reshape(1, 
 UPPER_IMAGE_BOUND = torch.tensor(((1 - IMAGENET_MEAN_1) / IMAGENET_STD_1).reshape(1, -1, 1, 1)).to(DEVICE)
 
 
-def gradient_ascent(config, model, input_tensor, layer_ids_to_use, iteration):
+def gradient_ascent(config, model, input_tensor, layers_to_use, features_to_use, iteration):
+    
+    #print("gradient_ascent")
+    #print("input_tensor 0 min ", torch.min(input_tensor), " max ", torch.max(input_tensor))
+    
     # Step 0: Feed forward pass
-    out = model(input_tensor)
+    _, out = model(input_tensor)
 
     # Step 1: Grab activations/feature maps of interest
-    activations = [out[layer_id_to_use] for layer_id_to_use in layer_ids_to_use]
+    
+    #print("layers_to_use ", layers_to_use)
+    
+    activations = [out[layer_to_use][:, feature_to_use:feature_to_use+1, :] for layer_to_use, feature_to_use in zip(layers_to_use, features_to_use)]
 
     # Step 2: Calculate loss over activations
     losses = []
     for layer_activation in activations:
+        
+        #print("activation min ", torch.min(layer_activation), " max ", torch.max(layer_activation))
+        
         # Use torch.norm(torch.flatten(layer_activation), p) with p=2 for L2 loss and p=1 for L1 loss. 
         # But I'll use the MSE as it works really good, I didn't notice any serious change when going to L1/L2.
         # using torch.zeros_like as if we wanted to make activations as small as possible but we'll do gradient ascent
@@ -443,6 +563,8 @@ def gradient_ascent(config, model, input_tensor, layer_ids_to_use, iteration):
 
     # Step 3: Process image gradients (smoothing + normalization, more an art then a science)
     grad = input_tensor.grad.data
+    
+    #print("grad min ", torch.min(grad), " max ", torch.max(grad))
 
     # Applies 3 Gaussian kernels and thus "blurs" or smoothens the gradients and gives visually more pleasing results
     # We'll see the details of this one in the next cell and that's all, you now understand DeepDream!
@@ -454,10 +576,18 @@ def gradient_ascent(config, model, input_tensor, layer_ids_to_use, iteration):
     g_std = torch.std(smooth_grad)
     g_mean = torch.mean(smooth_grad)
     smooth_grad = smooth_grad - g_mean
-    smooth_grad = smooth_grad / g_std
+    
+    if torch.is_nonzero(g_std):
+        smooth_grad = smooth_grad / g_std
+    
+    #print("g_std min ", torch.min(g_std), " max ", torch.max(g_std))
+    #print("g_mean min ", torch.min(g_mean), " max ", torch.max(g_mean))
+    #print("smooth_grad min ", torch.min(smooth_grad), " max ", torch.max(smooth_grad))
 
     # Step 4: Update image using the calculated gradients (gradient ascent step)
     input_tensor.data += config['lr'] * smooth_grad
+    
+    #print("input_tensor 1 min ", torch.min(input_tensor), " max ", torch.max(input_tensor))
 
     # Step 5: Clear gradients and clamp the data (otherwise values would explode to +- "infinity")
     input_tensor.grad.data.zero_()
@@ -511,7 +641,7 @@ class CascadeGaussianSmoothing(nn.Module):
             kernel = kernel.repeat(3, 1, 1, 1)
             kernel = kernel.to(DEVICE)
             
-            print("CascadeGaussianSmoothing kernel s ", kernel.shape)
+            #print("CascadeGaussianSmoothing kernel s ", kernel.shape)
 
             gaussian_kernels.append(kernel)
 
@@ -522,13 +652,13 @@ class CascadeGaussianSmoothing(nn.Module):
 
     def forward(self, input):
         
-        print("CascadeGaussianSmoothing input s ", input.shape)
+        #print("CascadeGaussianSmoothing input s ", input.shape)
         
-        print("pad ", self.pad)
+        #print("pad ", self.pad)
         
         input = F.pad(input, [self.pad, self.pad, self.pad, self.pad], mode='reflect')
         
-        print("input2 s ", input.shape)
+        #print("input2 s ", input.shape)
 
         # Apply Gaussian kernels depthwise over the input (hence groups equals the number of input channels)
         # shape = (1, 3, H, W) -> (1, 3, H, W)
@@ -539,7 +669,7 @@ class CascadeGaussianSmoothing(nn.Module):
         
         grad_total = (grad1 + grad2 + grad3) / 3
         
-        print("grad_total s ", grad_total.shape)
+        #print("grad_total s ", grad_total.shape)
         
 
         return (grad1 + grad2 + grad3) / 3
@@ -585,10 +715,353 @@ config['input'] = os.path.basename(config['input'])  # handle absolute and relat
 Finally let's run it, and enjoy the fruits of our labor! 
 """
 
+model = fetch_and_prepare_model(config['model_name'], config['pretrained_weights'])
 
-img = deep_dream_static_image(config)  # yep a single liner
+# test model
+
+model_test_input = torch.zeros((1, 3, 128, 128)).to(device)
+model_test_output, model_layer_outputs = model(model_test_input)
+
+print("model_test_input s ", model_test_input.shape)
+print("model_test_output s ", model_test_output.shape)
+
+# gather layer names and number of feature maps
+
+layer_names = model.layer_names
+feature_counts = []
+
+for layer_name, layer_output in model_layer_outputs.items():
+    print("layer_name ", layer_name, " layer_output s ", layer_output.shape)
+    feature_counts.append(layer_output.shape[1])
+
+# """
+# img = deep_dream_static_image(config)  # yep a single liner
 
 
-config['should_display'] = True
-dump_path = save_and_maybe_display_image(config, img)
-print(f'Saved DeepDream static image to: {os.path.relpath(dump_path)}\n')
+# config['should_display'] = True
+# dump_path = save_and_maybe_display_image(config, img)
+# print(f'Saved DeepDream static image to: {os.path.relpath(dump_path)}\n')
+# """
+
+# """
+# Iterate through all layers and feature maps
+# """
+
+# model = fetch_and_prepare_model(config['model_name'], config['pretrained_weights'])
+
+# # test model
+
+# model_test_input = torch.zeros((1, 3, 128, 128)).to(device)
+# model_test_output, model_layer_outputs = model(model_test_input)
+
+# print("model_test_input s ", model_test_input.shape)
+# print("model_test_output s ", model_test_output.shape)
+
+# # gather layer names and number of feature maps
+
+# layer_names = model.layer_names
+# feature_counts = []
+
+# for layer_name, layer_output in model_layer_outputs.items():
+#     print("layer_name ", layer_name, " layer_output s ", layer_output.shape)
+    
+#     feature_counts.append(layer_output.shape[1])
+    
+    
+# """
+# Single Test
+# """
+
+# config['dump_dir'] = "results/images"
+
+# config["pyramid_size"] = 1
+# config["pyramid_ratio"] = 1.0
+# config["spatial_shift_size"] = 0.0
+
+# config["input"] = "D:/Data/images/muriel/painting_excerpt/frame_00151.jpg"
+# config["img_width"] = 1280
+# config["layers_to_use"] = ["conv5_1"]
+# config["features_to_use"] = [216]
+    
+# config["layers_to_use"] = ["conv4_2"]
+# config["features_to_use"] = [226]
+
+# img = deep_dream_static_image(config)  # yep a single liner
+
+# config['should_display'] = True
+# dump_path = save_and_maybe_display_image(config, img)
+# print(f'Saved DeepDream static image to: {os.path.relpath(dump_path)}\n')
+
+# """
+# Iterate through all layers and feature maps
+# """
+
+# for layer_index, feature_count in enumerate(feature_counts):
+#     for feature_index in range(feature_count):
+        
+#         config["layers_to_use"] =  [ layer_names[layer_index] ]
+#         config["features_to_use"] =  [feature_index]
+        
+#         print("perform deep dream with layer ", config["layers_to_use"], " feature ", config["features_to_use"] )
+        
+#         img = deep_dream_static_image(config) 
+        
+#         config['should_display'] = False
+#         dump_path = save_and_maybe_display_image(config, img)
+#         #print(f'Saved DeepDream static image to: {os.path.relpath(dump_path)}\n')
+        
+# """
+# iterate through sequence of images and apply same deep dreap settings to each image
+# """
+
+# images_file_path = "D:/Data/images/muriel/painting_excerpt"
+
+# config = {}
+# config['dump_dir'] = "results/images"
+# config["input"] = ""
+# config["img_width"] = 1280
+# config["layers_to_use"] = ["conv4_2"]
+# config["features_to_use"] = [226]
+# config["use_noise"] = False
+# config["pyramid_size"] = 1
+# config["pyramid_ratio"] = 1.0
+# config["num_gradient_ascent_iterations"] = 30
+# config["lr"] = 0.09
+# config["should_display"] = False
+# config["spatial_shift_size"] = 0
+# config["smoothing_coefficient"] = 0.5
+# config["use_noise"] = False
+
+
+# """
+# img = deep_dream_static_image(config)  # yep a single liner
+
+# config['should_display'] = True
+# dump_path = save_and_maybe_display_image(config, img)
+# #print(f'Saved DeepDream static image to: {os.path.relpath(dump_path)}\n')
+# """
+
+# for root, _, fnames in sorted(os.walk(images_file_path, followlinks=True)):
+    
+#     for fname in fnames:
+    
+#         print("fname ", fname)
+        
+#         config["input"] = images_file_path + "/" + fname
+        
+#         img = deep_dream_static_image(config)  # yep a single liner
+        
+#         #print("img min ", np.min(img), " max ", np.max(img))
+    
+#         config['should_display'] = False
+#         dump_path = save_and_maybe_display_image(config, img)
+#         #print(f'Saved DeepDream static image to: {os.path.relpath(dump_path)}\n')
+
+    
+#     #for fname in sorted(fnames):
+        
+    
+"""
+Deep Dream Configuration
+"""
+
+config = {}
+config['dump_dir'] = "results/images"
+config["input"] = ""
+config["img_width"] = 1024
+config["layers_to_use"] = ["conv4_2"]
+config["features_to_use"] = [226]
+config["use_noise"] = False
+config["pyramid_size"] = 2
+config["pyramid_ratio"] = 1.1
+config["num_gradient_ascent_iterations"] = 1
+config["lr"] = 0.09
+config["should_display"] = False
+config["spatial_shift_size"] = 0
+config["smoothing_coefficient"] = 0.5
+config["use_noise"] = False
+config["image_blend_factor"] = 0.1
+
+    
+"""
+OSC Receiver
+"""
+
+import threading
+from pythonosc import dispatcher
+from pythonosc import osc_server
+
+def osc_set_layer(address, *args):
+    
+    layer = args[0]
+    
+    if layer not in layer_names:
+        return
+    
+    config["layers_to_use"] = [layer]
+    
+    print("layer ", layer)
+
+def osc_set_feature(address, *args):
+    
+    feature = args[0]
+    
+    layer = config["layers_to_use"][0]
+    layer_index = layer_names.index(layer)
+    
+    if feature > feature_counts[layer_index]:
+        return
+    
+    config["features_to_use"] = [feature]
+    
+    print("feature ", feature)
+    
+def osc_set_pyramid_size(address, *args):
+    
+    pyramid_size = args[0]
+    
+    config["pyramid_size"] = pyramid_size
+    
+    print("pyramid_size ", pyramid_size)
+    
+def osc_set_pyramid_ratio(address, *args):
+    
+    pyramid_ratio = args[0]
+    
+    config["pyramid_ratio"] = pyramid_ratio
+    
+    print("pyramid_ratio ", pyramid_ratio)
+    
+def osc_set_gradient_iterations(address, *args):
+    
+    gradient_iterations = args[0]
+    
+    config["num_gradient_ascent_iterations"] = gradient_iterations
+    
+    print("gradient_iterations ", gradient_iterations)   
+    
+def osc_set_learning_rate(address, *args):
+    
+    learning_rate = args[0]
+    
+    config["lr"] = learning_rate
+    
+    print("learning_rate ", learning_rate)   
+    
+def osc_set_image_blend(address, *args):
+    
+    blend = args[0]
+    
+    config["image_blend_factor"] = blend
+    
+    print("blend ", blend)   
+
+osc_dispatcher = dispatcher.Dispatcher()
+osc_dispatcher.map("/deepdream/layer", osc_set_layer)
+osc_dispatcher.map("/deepdream/feature", osc_set_feature)
+osc_dispatcher.map("/deepdream/pyramid_size", osc_set_pyramid_size)
+osc_dispatcher.map("/deepdream/pyramid_ratio", osc_set_pyramid_ratio)
+osc_dispatcher.map("/deepdream/iterations", osc_set_gradient_iterations)
+osc_dispatcher.map("/deepdream/learning_rate", osc_set_learning_rate)
+osc_dispatcher.map("/deepdream/blend", osc_set_image_blend)
+
+
+osc_server = osc_server.ThreadingOSCUDPServer((osc_receive_ip, osc_receive_port), osc_dispatcher)
+
+def start_osc_server():
+    osc_server.serve_forever()
+
+def osc_start():
+    osc_thread = threading.Thread(target=start_osc_server)
+    osc_thread.start()
+        
+def osc_stop():
+    osc_server.server_close()
+
+"""
+Real Time version with camera input
+"""
+
+def setup_video_capture(camera_index, camera_resolution):
+    
+    camera = cv.VideoCapture(camera_index)
+    camera.set(3,camera_resolution[0])
+    camera.set(4,camera_resolution[1])
+    
+    return camera
+
+def finish_video_capture(camera):
+    
+    camera.release()
+    
+def capture_image(camera, target_resolution):
+    
+    ret, camera_frame = camera.read()
+    
+    if ret == False:
+        return None
+    
+    if target_resolution is not None:  # resize section
+        if isinstance(target_resolution, int) and target_resolution != -1:  # scalar -> implicitly setting the width
+            current_height, current_width = camera_frame.shape[:2]
+            new_width = target_resolution
+            new_height = int(current_height * (new_width / current_width))
+            camera_frame = cv.resize(camera_frame, (new_width, new_height), interpolation=cv.INTER_CUBIC)
+        else:  # set both dimensions to target shape
+            camera_frame = cv.resize(camera_frame, (target_resolution[1], target_resolution[0]), interpolation=cv.INTER_CUBIC)
+
+    # This need to go after resizing - otherwise cv.resize will push values outside of [0,1] range
+    camera_frame = camera_frame.astype(np.float32)  # convert from uint8 to float32
+    camera_frame /= 255.0  # get to [0, 1] range
+    return camera_frame
+    
+    return camera_frame
+
+def apply_deep_dream(proc_image, camera_image):
+    
+    if proc_image is not None:
+        
+        proc_image = proc_image * (1.0 - config["image_blend_factor"]) + camera_image * config["image_blend_factor"]
+        proc_image = deep_dream_static_image(config, proc_image)  # yep a single liner
+    
+    else:
+        
+        proc_image = deep_dream_static_image(config, camera_image)
+        
+    return proc_image
+
+"""
+Start Real-Time Deep Dream
+"""
+
+if use_live_camera_input == True:
+    camera = setup_video_capture(0, image_resolution)
+else:
+    camera = setup_video_capture(movie_file_path, image_resolution)
+
+osc_start()
+
+proc_image = None
+
+while(True):
+    #inside infinity loop
+    camera_frame = capture_image(camera, None)
+    
+    if camera_frame is None:
+        break
+    
+    if cv.waitKey(1) & 0xFF == ord('q'):
+        break
+    
+    proc_image = apply_deep_dream(proc_image, camera_frame)
+    
+    proc_image_cv = proc_image * 255.0
+    proc_image_cv = proc_image_cv.astype(np.uint8)  # convert from uint8 to float32
+
+    cv.imshow('frame', proc_image_cv)
+
+finish_video_capture(camera)
+osc_stop()
+
+# Destroy all the windows
+cv.destroyAllWindows() 
