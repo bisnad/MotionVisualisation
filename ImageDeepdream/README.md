@@ -18,6 +18,7 @@ The tool can be downloaded by cloning the [MotionVisualisation repository](..). 
 
 ImageDeepdream (contains tool specific python scripts)
 
+- controls (contains an example Max/MSP patch for interactively controlling the tool)
 - data
   - media (contains media used in this Readme)
 
