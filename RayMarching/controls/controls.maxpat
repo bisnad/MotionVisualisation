@@ -10,7 +10,7 @@
 		}
 ,
 		"classnamespace" : "box",
-		"rect" : [ 124.0, 108.0, 1642.0, 948.0 ],
+		"rect" : [ 2047.0, 234.0, 1642.0, 948.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 1,
 		"default_fontsize" : 12.0,
@@ -39,6 +39,19 @@
 		"subpatcher_template" : "",
 		"assistshowspatchername" : 0,
 		"boxes" : [ 			{
+				"box" : 				{
+					"id" : "obj-390",
+					"linecount" : 2,
+					"maxclass" : "message",
+					"numinlets" : 2,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 1352.0, 977.0, 188.0, 36.0 ],
+					"text" : "/vis/scenerotation 0.999847 0.007351 0. 0."
+				}
+
+			}
+, 			{
 				"box" : 				{
 					"format" : 6,
 					"id" : "obj-4814",
@@ -15138,10 +15151,10 @@
 						"camAngle_interest" : [ 0 ],
 						"camAngle_max" : [ 120.0 ],
 						"camAngle_min" : [ 5.0 ],
-						"camPosX" : [ 0.65705 ],
+						"camPosX" : [ 0.657049999999998 ],
 						"camPosX_max" : [ 10.0 ],
 						"camPosX_min" : [ -10.0 ],
-						"camPosY" : [ 0.4215 ],
+						"camPosY" : [ 0.421499999999998 ],
 						"camPosY_max" : [ 10.0 ],
 						"camPosY_min" : [ -10.0 ],
 						"camPosZ" : [ 0.191564091680814 ],
@@ -15232,7 +15245,7 @@
 						"groundPrimitive" : [ 0.0 ],
 						"groundPrimitive_interest" : [ 0 ],
 						"groundRotX" : [ 0.0 ],
-						"groundRotX[10]" : [ 0.5 ],
+						"groundRotX[10]" : [ 0.505565577249576 ],
 						"groundRotX_max" : [ 0.0 ],
 						"groundRotX_min" : [ 0.0 ],
 						"groundRotY" : [ 0.0 ],
@@ -15265,7 +15278,7 @@
 						"jointColorG" : [ 0.5571 ],
 						"jointColorR" : [ 0.6355 ],
 						"jointColor_interest" : [ 0 ],
-						"jointDiffuseScale" : [ 0.995 ],
+						"jointDiffuseScale" : [ 0.0 ],
 						"jointDiffuseScale_interest" : [ 0 ],
 						"jointDiffuseScale_min" : [ 0.0 ],
 						"jointEdgeSmooth" : [ 0.2161 ],
@@ -15402,10 +15415,10 @@
 						"scenePositionY" : [ 0.0 ],
 						"scenePositionY_max" : [ 20.0 ],
 						"scenePositionY_min" : [ -20.0 ],
-						"scenePositionZ" : [ 0.0 ],
+						"scenePositionZ" : [ 0.000000000000039 ],
 						"scenePositionZ_max" : [ 100.0 ],
 						"scenePositionZ_min" : [ -20.0 ],
-						"sceneRotX" : [ 0.0 ],
+						"sceneRotX" : [ 2.003607809847182 ],
 						"sceneRotX_max" : [ 180.0 ],
 						"sceneRotX_min" : [ -180.0 ],
 						"sceneRotY" : [ 0.0 ],
@@ -19498,7 +19511,16 @@
 			}
 , 			{
 				"patchline" : 				{
+					"destination" : [ "obj-390", 1 ],
+					"order" : 0,
+					"source" : [ "obj-4708", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
 					"destination" : [ "obj-4707", 0 ],
+					"order" : 1,
 					"source" : [ "obj-4708", 0 ]
 				}
 
@@ -23428,7 +23450,7 @@
  ],
 		"dependency_cache" : [ 			{
 				"name" : "controls.json",
-				"bootpath" : "~/Projects/Premiere/Software_Git2/MotionVisualisation/RayMarching2/controls",
+				"bootpath" : "~/Projects/Premiere/Software_Git2/MotionVisualisation/RayMarching/controls",
 				"patcherrelativepath" : ".",
 				"type" : "JSON",
 				"implicit" : 1
