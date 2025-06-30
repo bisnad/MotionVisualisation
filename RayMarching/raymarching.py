@@ -85,7 +85,7 @@ Osc Control
 """
 
 #oscControl = OscControl(skeleton, visualization, "127.0.0.1", 10000)
-oscControl = OscControl(skeleton, visualization, "0.0.0.0", 9005)
+oscControl = OscControl(skeleton, visualization, "0.0.0.0", 9007)
 oscControl.start()
 
 oscControl.fix_root = True
