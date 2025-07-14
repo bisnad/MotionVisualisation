@@ -14,8 +14,8 @@ class OscController:
         
         self.dmx_controller = config["dmx_controller"]
 
-        self.mocap_joint_selected = 0
-        self.light_selected = 0
+        self.mocap_joints_selected = [ 0 ]
+        self.lights_selected = [ 0 ]
 
         self._setup_osc_receive(config)
         
@@ -27,8 +27,8 @@ class OscController:
         self.dispatcher = dispatcher.Dispatcher()
         
         self.dispatcher.map("/mocap/0/joint/rot_world", self.setMocapJointRotationsOsc)
-        self.dispatcher.map("/mocap/joint/select", self.setMocapJointSelectOsc)
-        self.dispatcher.map("/light/select", self.setLightSelectOsc)
+        self.dispatcher.map("/mocap/joint/select", self.setMocapJointsSelectOsc)
+        self.dispatcher.map("/light/select", self.setLightsSelectOsc)
         
         self.dispatcher.map("/light/shutter", self.setLightShutterOsc)
         self.dispatcher.map("/light/white", self.setLightWhiteOsc)
@@ -53,102 +53,169 @@ class OscController:
         self.server.shutdown()
         self.server.server_close()
         
-    def _quaternion_to_euler(self, q):
-        
-        # q should be a numpy array: [x, y, z, w]
-        x, y, z, w = q
+    def _quaternions_to_euler(self, quaternions):
+        """
+        Convert an array of quaternions [x, y, z, w] to Euler angles [roll, pitch, yaw] in radians.
+        Assumes 'xyz' intrinsic rotation order.
+        """
+        x = quaternions[:, 0]
+        y = quaternions[:, 1]
+        z = quaternions[:, 2]
+        w = quaternions[:, 3]
     
         # Roll (x-axis rotation)
-        sinr_cosp = 2 * (w * x + y * z)
-        cosr_cosp = 1 - 2 * (x * x + y * y)
-        roll = np.arctan2(sinr_cosp, cosr_cosp)
+        t0 = +2.0 * (w * x + y * z)
+        t1 = +1.0 - 2.0 * (x * x + y * y)
+        roll = np.arctan2(t0, t1)
     
         # Pitch (y-axis rotation)
-        sinp = 2 * (w * y - z * x)
-        if np.abs(sinp) >= 1:
-            pitch = np.copysign(np.pi / 2, sinp)
-        else:
-            pitch = np.arcsin(sinp)
+        t2 = +2.0 * (w * y - z * x)
+        t2 = np.clip(t2, -1.0, 1.0)  # Clamp for numerical stability
+        pitch = np.arcsin(t2)
     
         # Yaw (z-axis rotation)
-        siny_cosp = 2 * (w * z + x * y)
-        cosy_cosp = 1 - 2 * (y * y + z * z)
-        yaw = np.arctan2(siny_cosp, cosy_cosp)
+        t3 = +2.0 * (w * z + x * y)
+        t4 = +1.0 - 2.0 * (y * y + z * z)
+        yaw = np.arctan2(t3, t4)
     
-        return np.array([roll, pitch, yaw])
+        return np.stack([roll, pitch, yaw], axis=1)
         
-    def _update_pan_tilt(self, rotation):
+    def _update_pan_tilt(self, rotations):
         
-        euler_angles = self._quaternion_to_euler(rotation)
-        
-        roll, pitch, yaw = euler_angles
+        min_count = min(len(rotations), len(self.lights_selected))
 
+        _rotations = rotations[:min_count]
+        _lights_selected = self.lights_selected[:min_count]
         
-        self.dmx_controller.set_pan_angle(self.light_selected, np.degrees(yaw))
-        self.dmx_controller.set_tilt_angle(self.light_selected, np.degrees(pitch))
-        self.dmx_controller.send()
+        euler_angles = self._quaternions_to_euler(_rotations)
+        
+        roll = euler_angles[:,0]
+        pitch = euler_angles[:,1]
+        yaw = euler_angles[:,2]
+        
+        #print("_update_pan_tilt ", rotations, " euler_angles ", euler_angles, " pitch ", pitch, " yaw ", yaw)
+        
+        for light_selected, yaw, pitch in zip(_lights_selected, yaw, pitch):
+            self.dmx_controller.set_pan_angle(light_selected, np.degrees(yaw))
+            self.dmx_controller.set_tilt_angle(light_selected, np.degrees(pitch))
+            
+        self.dmx_controller.send() 
 
     def setMocapJointRotationsOsc(self, address, *args):
         
         rotations = np.array(args, dtype=np.float32)
         rotations = np.reshape(rotations, (-1, 4))
 
-        self._update_pan_tilt(rotations[self.mocap_joint_selected])
+        self._update_pan_tilt(rotations[self.mocap_joints_selected])
 
-    def setMocapJointSelectOsc(self, address, *args):
+    def setMocapJointsSelectOsc(self, address, *args):
         
-        self.mocap_joint_selected = args[0]
+        self.mocap_joints_selected = list(args)
  
-    def setLightSelectOsc(self, address, *args):
-        
-        self.light_selected = args[0]       
+    def setLightsSelectOsc(self, address, *args):
+
+        self.lights_selected = list(args)    
         
     def setLightShutterOsc(self, address, *args):
-            
-        light_nr = args[0]
-        shutter = args[1]
         
-        self.dmx_controller.set_shutter(light_nr, shutter)
+        if len(args) == 1:
+            shutter = args[0]
+            for light_nr in self.lights_selected:
+                self.dmx_controller.set_shutter(light_nr, shutter)
+        elif len(args) == 2:
+            light_nr = args[0]
+            shutter = args[1]
+            self.dmx_controller.set_shutter(light_nr, shutter)
+        elif len(args) == len(self.lights_selected):
+            shutters = args
+            for light_nr, shutter in zip(self.lights_selected, shutters):
+                self.dmx_controller.set_shutter(light_nr, shutter)
+
         self.dmx_controller.send()
         
     def setLightWhiteOsc(self, address, *args):
-            
-        light_nr = args[0]
-        white = args[1]
         
-        self.dmx_controller.set_white(light_nr, white)
+        if len(args) == 1:
+            white = args[0]
+            for light_nr in self.lights_selected:
+                self.dmx_controller.set_white(light_nr, white)
+        elif len(args) == 2:
+            light_nr = args[0]
+            white = args[1]
+            self.dmx_controller.set_white(light_nr, white)
+        elif len(args) == len(self.lights_selected):
+            whites = args
+            for light_nr, white in zip(self.lights_selected, whites):
+                self.dmx_controller.set_white(light_nr, white)
+
         self.dmx_controller.send()
         
     def setLightIntensityOsc(self, address, *args):
-            
-        light_nr = args[0]
-        intensity = args[1]
         
-        self.dmx_controller.set_intensity(light_nr, intensity)
+        if len(args) == 1:
+            intensity = args[0]
+            for light_nr in self.lights_selected:
+                self.dmx_controller.set_intensity(light_nr, intensity)
+        elif len(args) == 2:
+            light_nr = args[0]
+            intensity = args[1]
+            self.dmx_controller.set_intensity(light_nr, intensity)
+        elif len(args) == len(self.lights_selected):
+            intensities = args
+            for light_nr, intensity in zip(self.lights_selected, intensities):
+                self.dmx_controller.set_intensity(light_nr, intensity)
+
         self.dmx_controller.send()
         
     def setLightColorRedOsc(self, address, *args):
-            
-        light_nr = args[0]
-        red = args[1]
         
-        self.dmx_controller.set_color_red(light_nr, red)
+        if len(args) == 1:
+            red = args[0]
+            for light_nr in self.lights_selected:
+                self.dmx_controller.set_color_red(light_nr, red)
+        elif len(args) == 2:
+            light_nr = args[0]
+            red = args[1]
+            self.dmx_controller.set_color_red(light_nr, red) 
+        elif len(args) == len(self.lights_selected):
+            reds = args
+            for light_nr, red in zip(self.lights_selected, reds):
+                self.dmx_controller.set_color_red(light_nr, red)
+
         self.dmx_controller.send()
         
     def setLightColorGreenOsc(self, address, *args):
-            
-        light_nr = args[0]
-        green = args[1]
         
-        self.dmx_controller.set_color_green(light_nr, green)
+        if len(args) == 1:
+            green = args[0]
+            for light_nr in self.lights_selected:
+                self.dmx_controller.set_color_green(light_nr, green)
+        elif len(args) == 2:
+            light_nr = args[0]
+            green = args[1]
+            self.dmx_controller.set_color_green(light_nr, green) 
+        elif len(args) == len(self.lights_selected):
+            greens = args
+            for light_nr, green in zip(self.lights_selected, greens):
+                self.dmx_controller.set_color_green(light_nr, green)
+
         self.dmx_controller.send()
         
     def setLightColorBlueOsc(self, address, *args):
-            
-        light_nr = args[0]
-        blue = args[1]
         
-        self.dmx_controller.set_color_blue(light_nr, blue)
+        if len(args) == 1:
+            blue = args[0]
+            for light_nr in self.lights_selected:
+                self.dmx_controller.set_color_blue(light_nr, blue)
+        elif len(args) == 2:
+            light_nr = args[0]
+            blue = args[1]
+            self.dmx_controller.set_color_blue(light_nr, blue) 
+        elif len(args) == len(self.lights_selected):
+            blues = args
+            for light_nr, blue in zip(self.lights_selected, blues):
+                self.dmx_controller.set_color_blue(light_nr, blue)
+            
         self.dmx_controller.send()
         
     def setDmxCloseOsc(self, address, *args):

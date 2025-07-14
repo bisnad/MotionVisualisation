@@ -51,7 +51,7 @@ class OscController:
             
         light_nr = args[0]
         pan = args[1]
-
+        
         self.dmx_controller.set_pan_angle(light_nr, pan)
         self.dmx_controller.send()
 
