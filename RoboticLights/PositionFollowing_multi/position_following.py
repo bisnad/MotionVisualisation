@@ -7,6 +7,7 @@ Light control Data is sent directly via DMX to the lights using the EnttecPro US
 Imports
 """
 
+import json
 import dmx_controller as dmx
 import osc_controller as osc
 import light_setup as ls
@@ -30,11 +31,21 @@ ls.config["light_setup_file"] = "configs/light_setup_single.json"
 light_setup = ls.LightSetup(ls.config)
 
 """
+Mocap Setup
+"""
+
+mocap_setup_file = "configs/mocap_setup.json"
+
+with open(mocap_setup_file) as json_data:
+    mocap_setup = json.load(json_data)
+
+"""
 Setup OSC Controller
 """
 
 osc.config["dmx_controller"] = dmx_controller
 osc.config["light_setup"] = light_setup
+osc.config["mocap_setup"] = mocap_setup
 osc.config["ip"] = "127.0.0.1"
 osc.config["port"] = 9004
 

@@ -24,8 +24,8 @@ class OscControl():
         
         self.dispatcher.map("/mocap/skelposworld", self.setMocapSkeletonPosition)
         self.dispatcher.map("/mocap/rootzero", self.setMocapRootZero)
-        self.dispatcher.map("/mocap/0/joint/pos_world", self.setMocapJointPositions)
-        self.dispatcher.map("/mocap/0/joint/rot_world", self.setMocapJointRotations)
+        self.dispatcher.map("/mocap/*/joint/pos_world", self.setMocapJointPositions)
+        self.dispatcher.map("/mocap/*/joint/rot_world", self.setMocapJointRotations)
         
         self.dispatcher.map("/vis/camposition", self.setVisCamPosition)
         self.dispatcher.map("/vis/camangle", self.setVisCamAngle)

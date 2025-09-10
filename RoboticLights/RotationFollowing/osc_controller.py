@@ -26,7 +26,8 @@ class OscController:
         
         self.dispatcher = dispatcher.Dispatcher()
         
-        self.dispatcher.map("/mocap/0/joint/rot_world", self.setMocapJointRotationsOsc)
+        self.dispatcher.map("/mocap/*/joint/rot_world", self.setMocapJointRotationsOsc)
+        #self.dispatcher.map("/mocap/*/joint/rot_local", self.setMocapJointRotationsOsc)
         self.dispatcher.map("/mocap/joint/select", self.setMocapJointsSelectOsc)
         self.dispatcher.map("/light/select", self.setLightsSelectOsc)
         
@@ -55,14 +56,14 @@ class OscController:
         
     def _quaternions_to_euler(self, quaternions):
         """
-        Convert an array of quaternions [x, y, z, w] to Euler angles [roll, pitch, yaw] in radians.
+        Convert an array of quaternions [w, x, y, z] to Euler angles [roll, pitch, yaw] in radians.
         Assumes 'xyz' intrinsic rotation order.
         """
-        x = quaternions[:, 0]
-        y = quaternions[:, 1]
-        z = quaternions[:, 2]
-        w = quaternions[:, 3]
-    
+        w = quaternions[:, 0]
+        x = quaternions[:, 1]
+        y = quaternions[:, 2]
+        z = quaternions[:, 3]
+        
         # Roll (x-axis rotation)
         t0 = +2.0 * (w * x + y * z)
         t1 = +1.0 - 2.0 * (x * x + y * y)
@@ -93,8 +94,8 @@ class OscController:
         pitch = euler_angles[:,1]
         yaw = euler_angles[:,2]
         
-        #print("_update_pan_tilt ", rotations, " euler_angles ", euler_angles, " pitch ", pitch, " yaw ", yaw)
-        
+        #print("rotations ", rotations, " euler_angles ", euler_angles)
+
         for light_selected, yaw, pitch in zip(_lights_selected, yaw, pitch):
             self.dmx_controller.set_pan_angle(light_selected, np.degrees(yaw))
             self.dmx_controller.set_tilt_angle(light_selected, np.degrees(pitch))
