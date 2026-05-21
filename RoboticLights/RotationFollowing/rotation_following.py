@@ -5,7 +5,7 @@ import osc_controller as osc
 Setup DMX Controller
 """
 
-dmx.config["port"] = "COM5"
+dmx.config["port"] = "COM7"
 dmx.config["light_properties_file"] = "configs/light_properties_beamZ_Panther15.json"
 
 dmx_controller = dmx.DMXController(dmx.config)
@@ -16,7 +16,7 @@ Setup OSC Controller
 
 osc.config["dmx_controller"] = dmx_controller
 osc.config["ip"] = "127.0.0.1"
-osc.config["port"] = 9004
+osc.config["port"] = 9007
 
 osc_controller = osc.OscController(osc.config)
                                    

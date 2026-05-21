@@ -31,8 +31,8 @@ from osc_control import OscControl
 Setup Skeleton
 """
 
-#joint_settings_file = "data/configs/xsens_joint_settings.json"
-joint_settings_file = "data/configs/zed_body34_joint_settings.json"
+joint_settings_file = "data/configs/xsens_joint_settings.json"
+#joint_settings_file = "data/configs/zed_body34_joint_settings.json"
 
 with open(joint_settings_file) as f:
     joint_settings = json.load(f)

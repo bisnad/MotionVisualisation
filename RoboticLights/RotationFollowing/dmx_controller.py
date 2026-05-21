@@ -35,6 +35,9 @@ class DMXController:
         self.color_blue_channel = self.light_properties["dmx_color_blue_channel"]
             
     def set_shutter(self, light_nr, value):
+
+        #print("set_shutter light_nr ", light_nr, " value ", value)
+        #print("self.shutter_channel ", self.shutter_channel)
         
         if self.shutter_channel == -1:
             return
@@ -42,6 +45,9 @@ class DMXController:
         self.dmx_controller.set_channel(light_nr * self.channel_count + self.shutter_channel, int(value * 255))
         
     def set_shutters(self, values):
+
+        #print("set_shutters values ", values)
+        #print("self.shutter_channel ", self.shutter_channel)
         
         if self.shutter_channel == -1:
             return
@@ -51,6 +57,9 @@ class DMXController:
             self.dmx_controller.set_channel(light_nr * self.channel_count + self.shutter_channel, int(values[light_nr] * 255))
             
     def set_white(self, light_nr, value):
+
+        #print("set_white light_nr ", light_nr, " value ", value)
+        #print("self.color_white_channel ", self.color_white_channel)
         
         if self.color_white_channel == -1:
             return
@@ -58,6 +67,9 @@ class DMXController:
         self.dmx_controller.set_channel(light_nr * self.channel_count + self.white_channel, int(value * 255))
         
     def set_whites(self, values):
+
+        #print("set_whites values ", values)
+        #print("self.color_white_channel ", self.color_white_channel)
         
         if self.color_white_channel == -1:
             return
@@ -67,6 +79,9 @@ class DMXController:
             self.dmx_controller.set_channel(light_nr * self.channel_count + self.white_channel, int(values[light_nr] * 255))
         
     def set_intensity(self, light_nr, value):
+
+        #print("set_intensity light_nr ", light_nr, " value ", value)
+        #print("self.intensity_channel ", self.intensity_channel)
         
         if self.intensity_channel == -1:
             return
@@ -74,6 +89,9 @@ class DMXController:
         self.dmx_controller.set_channel(light_nr * self.channel_count + self.intensity_channel, int(value * 255))
         
     def set_intensities(self, values):
+
+        #print("set_intensities values ", values)
+        #print("self.intensity_channel ", self.intensity_channel)
         
         if self.intensity_channel == -1:
             return
@@ -83,6 +101,9 @@ class DMXController:
             self.dmx_controller.set_channel(light_nr * self.channel_count + self.intensity_channel, int(values[light_nr] * 255))
 
     def set_color_red(self, light_nr, value):
+
+        #print("set_color_red light_nr ", light_nr, " value ", value)
+        #print("self.color_red_channel ", self.color_red_channel)
         
         if self.color_red_channel == -1:
             return
@@ -90,6 +111,9 @@ class DMXController:
         self.dmx_controller.set_channel(light_nr * self.channel_count + self.color_red_channel, int(value * 255))
         
     def set_color_green(self, light_nr, value):
+
+        #print("set_color_green light_nr ", light_nr, " value ", value)
+        #print("self.color_green_channel ", self.color_green_channel)
         
         if self.color_green_channel == -1:
             return
@@ -98,6 +122,9 @@ class DMXController:
         
 
     def set_color_blue(self, light_nr, value):
+
+        #print("set_color_blue light_nr ", light_nr, " value ", value)
+        #print("self.color_blue_channel ", self.color_blue_channel)
         
         if self.color_blue_channel == -1:
             return
@@ -106,6 +133,9 @@ class DMXController:
         
         
     def set_pan_angle(self, light_nr, value):
+
+        #print("set_pan_angle light_nr ", light_nr, " value ", value)
+        #print("self.pan_channel ", self.pan_channel)
         
         if self.pan_channel == -1:
             return
@@ -118,6 +148,9 @@ class DMXController:
         self.dmx_controller.set_channel(light_nr * self.channel_count + self.pan_channel, dmx_value, submit_after=False)
 
     def set_pan_angles(self, values):
+
+        #print("set_pan_angles values ", values)
+        #print("self.pan_channel ", self.pan_channel)
         
         if self.pan_channel == -1:
             return
@@ -130,7 +163,10 @@ class DMXController:
             self.dmx_controller.set_channel(light_nr * self.channel_count + self.pan_channel, dmx_value, submit_after=False)
 
     def set_tilt_angle(self, light_nr, value):
-        
+
+        #print("set_tilt_angle light_nr ", light_nr, " value ", value)
+        #print("self.tilt_channel ", self.tilt_channel)
+
         if self.tilt_channel == -1:
             return
         
@@ -142,6 +178,9 @@ class DMXController:
         self.dmx_controller.set_channel(light_nr * self.channel_count + self.tilt_channel, dmx_value, submit_after=False)
 
     def set_tilt_angles(self, values):
+
+        #print("set_tilt_angles values ", values)
+        #print("self.tilt_channel ", self.tilt_channel)
         
         if self.tilt_channel == -1:
             return

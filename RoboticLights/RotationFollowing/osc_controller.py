@@ -135,7 +135,7 @@ class OscController:
         self.dmx_controller.send()
         
     def setLightWhiteOsc(self, address, *args):
-        
+
         if len(args) == 1:
             white = args[0]
             for light_nr in self.lights_selected:
@@ -152,7 +152,7 @@ class OscController:
         self.dmx_controller.send()
         
     def setLightIntensityOsc(self, address, *args):
-        
+
         if len(args) == 1:
             intensity = args[0]
             for light_nr in self.lights_selected:

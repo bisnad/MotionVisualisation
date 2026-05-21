@@ -10,9 +10,9 @@
 		}
 ,
 		"classnamespace" : "box",
-		"rect" : [ -1653.0, 349.0, 609.0, 366.0 ],
+		"rect" : [ 1945.0, 162.0, 705.0, 433.0 ],
 		"bglocked" : 0,
-		"openinpresentation" : 0,
+		"openinpresentation" : 1,
 		"default_fontsize" : 12.0,
 		"default_fontface" : 0,
 		"default_fontname" : "Arial",
@@ -81,7 +81,7 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 407.25, 499.0, 334.0, 22.0 ],
-					"text" : "/light/select 0 1"
+					"text" : "/light/select 0"
 				}
 
 			}
@@ -105,7 +105,7 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 407.0, 418.0, 50.0, 22.0 ],
-					"text" : "0 1"
+					"text" : "0"
 				}
 
 			}
@@ -164,8 +164,8 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 55.25, 499.0, 334.0, 22.0 ],
-					"text" : "/mocap/joint/select 15 19"
+					"patching_rect" : [ 55.25, 495.0, 334.0, 22.0 ],
+					"text" : "/mocap/joint/select 21"
 				}
 
 			}
@@ -219,7 +219,7 @@
 					"numoutlets" : 6,
 					"outlettype" : [ "", "", "", "", "", "" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 55.25, 338.0, 266.0, 70.0 ],
+					"patching_rect" : [ 55.25, 337.0, 266.0, 70.0 ],
 					"presentation" : 1,
 					"presentation_rect" : [ 112.25, 125.0, 266.0, 70.0 ],
 					"varname" : "joint_indices"
@@ -1287,10 +1287,10 @@
 						"blue" : [ 1.0 ],
 						"green" : [ 1.0 ],
 						"intensity" : [ 1.0 ],
-						"joint_indices" : [ 19 ],
-						"red" : [ 1.0 ],
+						"joint_indices" : [ 21 ],
+						"red" : [ 0.0 ],
 						"shutter" : [ 1.0 ],
-						"white" : [ 0.0 ]
+						"white" : [ 1.0 ]
 					}
 ,
 					"text" : "autopattr",
@@ -1339,7 +1339,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 0,
 					"patching_rect" : [ 800.5, 81.0, 138.0, 22.0 ],
-					"text" : "udpsend 127.0.0.1 9004"
+					"text" : "udpsend 127.0.0.1 9007"
 				}
 
 			}
@@ -1899,7 +1899,7 @@
  ],
 		"dependency_cache" : [ 			{
 				"name" : "controls.json",
-				"bootpath" : "~/Projects/Premiere/Software_Git2/MotionVisualisation/RoboticLights/RotationFollowing_multi/controls",
+				"bootpath" : "~/Projects/Premiere/Software_Git2/MotionVisualisation/RoboticLights/RotationFollowing/controls",
 				"patcherrelativepath" : ".",
 				"type" : "JSON",
 				"implicit" : 1
