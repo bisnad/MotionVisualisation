@@ -1363,7 +1363,7 @@ float primitiveMorphRippleSDF(vec3 p, vec3 size, float rounding, float primitive
     if (primitive1Index == 0) // sphere
     {
     
-        if(amplitude == 0) // non-rippling
+        if(length(amplitude) == 0.0) // non-rippling
         {
             primitive1dist = sphereSDF(p, size.x);    
         }
@@ -1374,7 +1374,7 @@ float primitiveMorphRippleSDF(vec3 p, vec3 size, float rounding, float primitive
         
         if (primitive2Index == primitive1Index + 1)
         {
-            if(amplitude == 0) // non-rippling
+            if(length(amplitude) == 0.0) // non-rippling
             {
                 primitive2dist = roundBoxSDF(p, size, rounding);
             }
@@ -1390,7 +1390,7 @@ float primitiveMorphRippleSDF(vec3 p, vec3 size, float rounding, float primitive
     }
     else if(primitive1Index == 1) // box
     {
-        if(amplitude == 0) // non-rippling
+        if(length(amplitude) == 0.0) // non-rippling
         {
             primitive1dist = roundBoxSDF(p, size, rounding);  
         }
@@ -1414,7 +1414,7 @@ float primitiveMorphRippleSDF(vec3 p, vec3 size, float rounding, float primitive
         
         if (primitive2Index == primitive1Index + 1)
         {
-            if(amplitude == 0) // non-rippling
+            if(length(amplitude) == 0.0) // non-rippling
             {
                 primitive2dist = roundCylinderSDF(p, size.z, size.x, rounding);
             }   
@@ -1430,7 +1430,7 @@ float primitiveMorphRippleSDF(vec3 p, vec3 size, float rounding, float primitive
     }
     else if(primitive1Index == 3) // Cylinder
     {
-        if(amplitude == 0) // non-rippling
+        if(length(amplitude) == 0.0) // non-rippling
         {
             primitive1dist = roundCylinderSDF(p, size.z, size.x, rounding);
         }

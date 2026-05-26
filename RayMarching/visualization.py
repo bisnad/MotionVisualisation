@@ -250,6 +250,8 @@ class Visualization():
         # Build data
         data = np.zeros((4, 2), dtype=np.float32)
         # Request a buffer slot from GPU
+        self.vao = gl.glGenVertexArrays(1) # Generate 1 VAO
+        gl.glBindVertexArray(self.vao) # Bind it so subsequent VBO/Attribute calls are attached to it
         buffer = gl.glGenBuffers(1)
 
         # Make this buffer the default one
@@ -629,8 +631,9 @@ class Visualization():
         gl.glUniform1f(self.shader_jointEdgeSmoothing, self.jointEdgeSmoothing)
         gl.glUniform1f(self.shader_skelObjectSmoothing, self.skelObjectSmoothing)
 
-
-        gl.glDrawArrays(gl.GL_TRIANGLE_STRIP, 0, 4)        
+        gl.glBindVertexArray(self.vao) 
+        gl.glDrawArrays(gl.GL_TRIANGLE_STRIP, 0, 4) 
+        gl.glBindVertexArray(0)       
         
     def setCamPosition(self, position):
         self.camPosition = position

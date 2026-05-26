@@ -12,6 +12,7 @@ import OpenGL.GL as gl
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import QOpenGLWindow
 from PyQt5 import QtCore
+from PyQt5.QtGui import QSurfaceFormat
 
 import time
 import json
@@ -154,7 +155,15 @@ class MinimalGLWidget(QOpenGLWindow):
 
 if __name__ == '__main__':
     app = QApplication([])
+
+    format = QSurfaceFormat()
+    format.setVersion(3, 3) # Request OpenGL 3.3
+    format.setProfile(QSurfaceFormat.CoreProfile)
+    # format.setForwardCompatible(True) # Optional, but often needed on macOS
+    QSurfaceFormat.setDefaultFormat(format)
+
     widget = MinimalGLWidget(visualization)
+    widget.setFormat(format)
     widget.show()
     widget.resize(window_size[0], window_size[1])
     app.exec_()
